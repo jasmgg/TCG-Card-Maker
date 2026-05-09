@@ -1,0 +1,2202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; img-src 'self' data: blob: file:; font-src 'self' https://fonts.gstatic.com">
+<title>TCG Card Maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=Outfit:wght@400;600;700;800&family=Pirata+One&family=Lora:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Crimson+Text:ital,wght@0,400;0,700;1,400&family=Spectral:ital,wght@0,400;0,700;1,400&family=Source+Sans+3:wght@400;600;700&family=Space+Mono:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Outfit', sans-serif; background: #12121e; color: #d0d0da; overflow: hidden; height: 100vh; user-select: none; }
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #3a3a4a; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #5a5a6a; }
+
+/* --- TITLEBAR --- */
+.titlebar { height: 40px; background: linear-gradient(180deg, #111120 0%, #0e0e1a 100%); display: flex; align-items: center; padding: 0 14px; -webkit-app-region: drag; border-bottom: 1px solid #1e1e2e; }
+.titlebar-title { font-size: 11px; color: #555; font-weight: 700; letter-spacing: 1.5px; }
+.titlebar-actions { margin-left: auto; display: flex; gap: 2px; -webkit-app-region: no-drag; }
+.tb-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 11px; padding: 5px 12px; border-radius: 4px; font-family: 'Outfit'; font-weight: 500; transition: all .12s; }
+.tb-btn:hover { background: #2a2a3a; color: #e0e0ea; }
+.tb-btn.save { color: #a78bfa; font-weight: 600; }
+.tb-btn.save:hover { background: rgba(108,92,231,0.15); }
+.tb-sep { width: 1px; background: #2a2a3a; margin: 6px 6px; }
+.project-name { font-size: 11px; color: #a78bfa; margin-left: 12px; font-weight: 400; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.unsaved { color: #e17055; }
+
+/* --- LAYOUT --- */
+#app { display: flex; height: calc(100vh - 40px); }
+.sidebar { width: 272px; background: #16162a; border-right: 1px solid #2a2a3a; display: flex; flex-direction: column; flex-shrink: 0; position: relative; min-width: 220px; max-width: 600px; }
+.sidebar-resize { position: absolute; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; z-index: 10; }
+.sidebar-resize:hover, .sidebar-resize.dragging { background: rgba(108,92,231,0.4); }
+.canvas-area { flex: 1; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, #1a1a2e 0%, #12121e 70%); position: relative; overflow: hidden; }
+.canvas-dots { position: absolute; inset: 0; background-image: radial-gradient(circle, #2a2a3a 0.8px, transparent 0.8px); background-size: 24px 24px; opacity: 0.3; pointer-events: none; }
+.props-panel { width: 260px; background: #16162a; border-left: 1px solid #2a2a3a; flex-shrink: 0; overflow-y: auto; }
+
+/* --- TABS --- */
+.tabs { display: flex; border-bottom: 1px solid #2a2a3a; background: #13132a; position: relative; }
+.tab-btn { flex: 1; padding: 10px 0 8px; background: none; border: none; border-bottom: 2px solid transparent; color: #555; cursor: pointer; font-family: 'Outfit'; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; transition: all .15s; position: relative; }
+.tab-btn:hover { color: #888; }
+.tab-btn.active { border-bottom-color: #6c5ce7; color: #a78bfa; }
+.tab-tooltip { display: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #1e1e34; color: #c0c0d0; padding: 8px 12px; border-radius: 8px; font-size: 10px; font-weight: 400; letter-spacing: 0; text-transform: none; white-space: nowrap; border: 1px solid #3a3a4a; z-index: 100; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.4); max-width: 220px; white-space: normal; text-align: center; line-height: 1.4; }
+.tab-tooltip::after { content:''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-bottom-color: #3a3a4a; }
+.tab-btn:hover .tab-tooltip { display: block; }
+.tab-content { flex: 1; overflow-y: auto; padding: 10px; display: none; }
+.tab-content.active { display: block; }
+
+/* --- COMMON --- */
+.section-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #6a6a8a; margin-bottom: 6px; display: block; font-weight: 700; }
+.el-btn { width: 100%; padding: 7px 10px; margin-bottom: 3px; background: #1a1a30; border: 1px solid #2a2a3a; border-radius: 6px; color: #c0c0d0; cursor: pointer; font-family: 'Outfit'; font-size: 11px; text-align: left; display: flex; align-items: center; gap: 8px; transition: all .12s; }
+.el-btn:hover { border-color: #6c5ce7; background: #1e1e36; transform: translateX(2px); }
+.el-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.el-type { margin-left: auto; font-size: 9px; color: #555; }
+.action-btn { padding: 5px 8px; background: #1a1a30; border: 1px solid #2a2a3a; border-radius: 5px; color: #777; cursor: pointer; display: inline-flex; align-items: center; font-size: 11px; transition: all .12s; }
+.action-btn:hover { border-color: #6c5ce7; color: #a78bfa; background: #1e1e36; }
+.primary-btn { width: 100%; padding: 10px 16px; background: linear-gradient(135deg, #6c5ce7 0%, #7c6cf7 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-family: 'Outfit'; font-weight: 600; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 7px; transition: all .15s; box-shadow: 0 2px 8px rgba(108,92,231,0.3); }
+.primary-btn:hover { background: linear-gradient(135deg, #7c6cf7 0%, #8c7cff 100%); box-shadow: 0 4px 16px rgba(108,92,231,0.4); transform: translateY(-1px); }
+.primary-btn:disabled { opacity: .5; cursor: default; transform: none; box-shadow: none; }
+.secondary-btn { width: 100%; padding: 8px 12px; background: #2a2a3e; color: #d0d0da; border: 1px solid #3a3a4a; border-radius: 7px; cursor: pointer; font-family: 'Outfit'; font-weight: 600; font-size: 12px; transition: all .15s; }
+.secondary-btn:hover { border-color: #6c5ce7; background: #2e2e44; }
+.danger-btn { color: #e74c3c; background: none; border: none; cursor: pointer; font-size: 10px; font-family: 'Outfit'; transition: color .1s; }
+.danger-btn:hover { color: #ff6b6b; }
+.nav-btn { background: #2a2a3e; border: 1px solid #3a3a4a; color: #d0d0da; border-radius: 5px; padding: 3px 10px; cursor: pointer; font-size: 13px; transition: all .1s; }
+.nav-btn:hover { border-color: #6c5ce7; }
+.nav-btn:disabled { opacity: .3; cursor: default; }
+.col-tag { background: #2a2a3e; padding: 3px 8px; border-radius: 10px; font-size: 9px; color: #a78bfa; cursor: pointer; display: inline-block; margin: 1px; transition: all .1s; }
+.col-tag:hover { background: #3a3a5e; transform: scale(1.05); }
+.status-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; padding: 4px 10px; border-radius: 10px; margin-top: 6px; }
+.status-pill.data { background: #1a2e1a; color: #6fcf6f; border: 1px solid #2a4a2a; }
+.status-pill.images { background: #2e1a1a; color: #e17055; border: 1px solid #4a2a2a; }
+
+/* --- LAYERS --- */
+.layers { border-top: 1px solid #2a2a3a; padding: 8px 8px; background: #14142a; }
+.layer-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 7px; border-radius: 5px; cursor: pointer; margin-bottom: 2px; transition: all .1s; font-size: 11px; color: #b0b0c0; }
+.layer-item:hover { background: #22223a; }
+.layer-item.sel { background: rgba(108,92,231,0.15); color: #a78bfa; border-left: 2px solid #6c5ce7; }
+.layer-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.layer-actions { display: flex; gap: 2px; }
+.lbtn { background: none; border: none; color: #666; cursor: pointer; font-size: 9px; padding: 2px 4px; border-radius: 3px; transition: all .1s; }
+.lbtn:hover { color: #a78bfa; background: rgba(108,92,231,0.1); }
+.lbtn.del:hover { color: #e74c3c; background: rgba(231,76,60,0.1); }
+
+/* --- CARD --- */
+.card-canvas { position: relative; background: #f5f0e8; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05); overflow: hidden; }
+.card-el { position: absolute; cursor: grab; box-sizing: border-box; }
+.card-el:active { cursor: grabbing; }
+.card-el.sel { outline: 2px solid #6c5ce7; outline-offset: 2px; }
+.rh { position: absolute; width: 9px; height: 9px; background: #6c5ce7; border: 2px solid #fff; border-radius: 2px; z-index: 999; transition: transform .1s; }
+.rh:hover { transform: scale(1.3); }
+.zoom-controls { position: absolute; bottom: 14px; right: 14px; display: flex; align-items: center; gap: 4px; background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 20px; padding: 3px 4px; }
+.zoom-btn { background: none; border: none; color: #8a8a9a; cursor: pointer; font-size: 14px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all .1s; font-family: 'Outfit'; }
+.zoom-btn:hover { background: #2a2a3e; color: #d0d0da; }
+.zoom-label { font-size: 10px; color: #8a8a9a; min-width: 36px; text-align: center; font-weight: 600; }
+
+/* --- PROPS --- */
+.props-wrap { padding: 12px; font-size: 12px; }
+.pt { font-size: 12px; font-weight: 700; margin-bottom: 12px; color: #e0e0e8; border-bottom: 1px solid #2a2a3a; padding-bottom: 8px; }
+.pl { font-size: 9px; color: #6a6a8a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; display: block; font-weight: 700; }
+.pr { display: flex; gap: 6px; margin-bottom: 8px; }
+.pi { width: 100%; padding: 5px 8px; border: 1px solid #2a2a3e; border-radius: 5px; background: #1a1a2e; color: #e0e0e8; font-size: 11px; font-family: 'Outfit'; box-sizing: border-box; transition: border-color .12s; }
+.pi:focus { outline: none; border-color: #6c5ce7; box-shadow: 0 0 0 2px rgba(108,92,231,0.15); }
+textarea.pi { resize: vertical; }
+.cw { display: flex; gap: 3px; }
+.cs { width: 26px; height: 24px; border: none; padding: 0; cursor: pointer; background: transparent; border-radius: 3px; }
+.empty-props { padding: 30px 20px; color: #555; font-size: 12px; text-align: center; margin-top: 40px; }
+
+/* --- MODAL --- */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 9999; align-items: center; justify-content: center; }
+.modal-overlay.show { display: flex; }
+.modal { background: #1a1a30; border: 1px solid #2a2a4a; border-radius: 14px; padding: 28px; width: 420px; max-width: 90vw; box-shadow: 0 24px 80px rgba(0,0,0,0.5); }
+.modal h2 { font-size: 17px; color: #e0e0e8; margin-bottom: 12px; font-weight: 700; }
+.modal p { font-size: 12px; color: #8a8a9a; margin-bottom: 12px; line-height: 1.5; }
+.progress-bar { width: 100%; height: 6px; background: #2a2a3e; border-radius: 3px; overflow: hidden; margin: 12px 0; }
+.progress-fill { height: 100%; background: linear-gradient(90deg,#6c5ce7,#a78bfa); transition: width .2s; }
+
+/* --- DATA EDITOR --- */
+.editor-toolbar { display: flex; gap: 4px; padding: 8px 8px; border-bottom: 1px solid #2a2a3a; background: #14142a; flex-wrap: wrap; }
+.editor-toolbar button { padding: 4px 10px; background: #2a2a3e; border: 1px solid #3a3a4a; border-radius: 5px; color: #c0c0d0; cursor: pointer; font-family: 'Outfit'; font-size: 10px; white-space: nowrap; transition: all .1s; }
+.editor-toolbar button:hover { border-color: #6c5ce7; color: #a78bfa; }
+.editor-toolbar button.danger { color: #e74c3c; }
+.editor-toolbar button.danger:hover { border-color: #e74c3c; }
+.editor-grid-wrap { overflow: auto; flex: 1; max-height: calc(100vh - 200px); }
+.editor-grid { border-collapse: collapse; font-size: 10px; width: max-content; }
+.editor-grid th { position: sticky; top: 0; background: #1a1a30; color: #a78bfa; font-weight: 600; padding: 5px 7px; border: 1px solid #2a2a3a; text-align: left; white-space: nowrap; z-index: 2; font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; min-width: 70px; }
+.editor-grid th.row-num { width: 32px; min-width: 32px; text-align: center; color: #555; position: sticky; left: 0; z-index: 3; background: #14142a; }
+.editor-grid td { padding: 0; border: 1px solid #2a2a3a; }
+.editor-grid td.row-num { text-align: center; color: #555; font-size: 9px; background: #14142a; padding: 2px 4px; position: sticky; left: 0; z-index: 1; cursor: pointer; }
+.editor-grid td.row-num:hover { background: #2a2a3e; color: #a78bfa; }
+.editor-grid td.row-num.active { background: rgba(108,92,231,0.15); color: #a78bfa; }
+.editor-cell { width: 100%; min-width: 60px; max-width: 180px; padding: 3px 5px; background: transparent; border: none; color: #d0d0da; font-family: 'Outfit'; font-size: 10px; outline: none; resize: none; overflow: hidden; }
+.editor-cell:focus { background: rgba(108,92,231,0.08); }
+
+/* --- SNAP GUIDES --- */
+.snap-guide { position: absolute; background: #ff6b6b; z-index: 9998; pointer-events: none; opacity: 0.7; }
+.snap-guide.vertical { width: 1px; top: 0; bottom: 0; }
+.snap-guide.horizontal { height: 1px; left: 0; right: 0; }
+.snap-guide.center { background: #ffd93d; }
+
+/* --- TEMPLATE MODAL --- */
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+.template-card { background: #14142a; border: 2px solid #2a2a3a; border-radius: 10px; padding: 10px; cursor: pointer; transition: all .2s; display: flex; gap: 10px; align-items: flex-start; }
+.template-card:hover { border-color: #5a4ad0; box-shadow: 0 4px 16px rgba(108,92,231,0.15); }
+.template-card.selected { border-color: #a78bfa; background: rgba(108,92,231,0.08); box-shadow: 0 0 0 1px rgba(167,139,250,0.3); }
+.template-card h4 { color: #e0e0e8; font-size: 12px; margin-bottom: 3px; }
+.template-card p { color: #8a8a9a; font-size: 9px; line-height: 1.3; }
+.template-preview { width: 60px; min-width: 60px; height: 84px; background: #f5f0e8; border-radius: 4px; position: relative; overflow: hidden; flex-shrink: 0; }
+.template-preview .tp-el { position: absolute; border-radius: 1px; }
+
+/* --- IMAGE RELINK --- */
+.relink-list { max-height: 300px; overflow-y: auto; margin: 12px 0; }
+.relink-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid #2a2a3a; font-size: 11px; }
+.relink-item .missing { color: #e74c3c; }
+.relink-item .found { color: #6fcf6f; }
+
+/* --- SNAP TOGGLE --- */
+.toggle-btn { padding: 4px 9px; background: #1a1a30; border: 1px solid #2a2a3a; border-radius: 5px; color: #777; cursor: pointer; font-family: 'Outfit'; font-size: 10px; transition: all .12s; }
+.toggle-btn:hover { border-color: #5a5a6a; color: #aaa; }
+.toggle-btn.active { border-color: #6c5ce7; color: #a78bfa; background: rgba(108,92,231,0.12); }
+
+/* --- ADD ELEMENT POPOVER --- */
+.add-el-popover { position: absolute; bottom: calc(100% + 8px); left: 0; background: #1a1a30; border: 1px solid #2a2a4a; border-radius: 10px; padding: 14px; width: 250px; z-index: 200; box-shadow: 0 8px 32px rgba(0,0,0,0.5); display: none; }
+.add-el-popover.show { display: block; }
+.add-el-popover h4 { font-size: 11px; color: #e0e0e8; margin-bottom: 10px; font-weight: 700; }
+.add-el-type-btns { display: flex; gap: 6px; margin-bottom: 10px; }
+.add-el-type-btn { flex: 1; padding: 8px 6px; background: #1e1e36; border: 1px solid #2a2a3e; border-radius: 6px; color: #aaa; cursor: pointer; font-family: 'Outfit'; font-size: 10px; text-align: center; transition: all .12s; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.add-el-type-btn:hover { border-color: #5a5a6a; color: #d0d0da; }
+.add-el-type-btn.selected { border-color: #6c5ce7; color: #a78bfa; background: rgba(108,92,231,0.1); }
+.add-el-type-btn .type-icon { font-size: 16px; }
+.add-el-fields { display: flex; flex-direction: column; gap: 6px; }
+.add-el-row { display: flex; gap: 6px; align-items: center; }
+.add-el-row label { font-size: 9px; color: #6a6a8a; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; min-width: 40px; }
+
+/* --- TOAST NOTIFICATIONS --- */
+.toast-container { position: fixed; top: 48px; right: 16px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { padding: 10px 16px; border-radius: 8px; font-size: 12px; font-family: 'Outfit'; color: #e0e0e8; pointer-events: auto; animation: toastIn .25s ease-out; display: flex; align-items: center; gap: 8px; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06); }
+.toast.info { background: #1e2a4a; border-color: #2a3a5a; }
+.toast.success { background: #1a2e1a; border-color: #2a4a2a; }
+.toast.error { background: #2e1a1a; border-color: #4a2a2a; }
+.toast.warning { background: #2e2a1a; border-color: #4a3a2a; }
+.toast-icon { font-size: 14px; flex-shrink: 0; }
+.toast-close { margin-left: auto; background: none; border: none; color: #888; cursor: pointer; font-size: 14px; padding: 0 2px; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastOut { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(40px); } }
+
+/* --- CONTEXT MENU --- */
+.context-menu { position: fixed; background: #1a1a30; border: 1px solid #2a2a4a; border-radius: 8px; padding: 4px 0; min-width: 180px; z-index: 10001; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+.ctx-item { padding: 7px 14px; font-size: 11px; color: #c0c0d0; cursor: pointer; font-family: 'Outfit'; display: flex; align-items: center; justify-content: space-between; transition: all .08s; }
+.ctx-item:hover { background: rgba(108,92,231,0.12); color: #a78bfa; }
+.ctx-item.danger:hover { background: rgba(231,76,60,0.12); color: #e74c3c; }
+.ctx-shortcut { color: #555; font-size: 9px; margin-left: 16px; }
+.ctx-sep { height: 1px; background: #2a2a3a; margin: 4px 0; }
+
+/* --- WELCOME / ONBOARDING --- */
+.welcome-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 10002; display: flex; align-items: center; justify-content: center; }
+.welcome-card { background: linear-gradient(170deg, #1a1a34 0%, #16162a 100%); border: 1px solid #2a2a4a; border-radius: 16px; padding: 36px 40px; width: 520px; max-width: 90vw; text-align: center; box-shadow: 0 32px 80px rgba(0,0,0,0.5); }
+.welcome-card h1 { font-size: 22px; color: #e0e0e8; margin-bottom: 6px; font-weight: 700; }
+.welcome-card .subtitle { font-size: 13px; color: #8a8a9a; margin-bottom: 28px; line-height: 1.5; }
+.welcome-actions { display: flex; flex-direction: column; gap: 10px; }
+.welcome-action { display: flex; align-items: center; gap: 14px; padding: 14px 18px; background: #1a1a30; border: 1px solid #2a2a3e; border-radius: 10px; cursor: pointer; transition: all .15s; text-align: left; }
+.welcome-action:hover { border-color: #6c5ce7; background: #1e1e36; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(108,92,231,0.1); }
+.welcome-action .wa-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.welcome-action .wa-text h3 { font-size: 13px; color: #e0e0e8; font-weight: 600; margin-bottom: 2px; }
+.welcome-action .wa-text p { font-size: 10px; color: #8a8a9a; line-height: 1.3; }
+</style>
+</head>
+<body>
+
+<!-- TITLEBAR -->
+<div class="titlebar">
+  <span class="titlebar-title">TCG CARD MAKER</span>
+  <span class="project-name" id="project-name">Untitled Project</span>
+  <span id="unsaved-dot" class="unsaved" style="display:none;margin-left:6px;font-size:14px">●</span>
+  <div class="titlebar-actions">
+    <button class="tb-btn" onclick="newProject()">New</button>
+    <button class="tb-btn" onclick="showTemplateModal()">Templates</button>
+    <button class="tb-btn" onclick="loadProject()">Open</button>
+    <button class="tb-btn save" onclick="saveProject()">Save</button>
+    <button class="tb-btn" onclick="saveProjectAs()">Save As</button>
+    <div class="tb-sep"></div>
+    <button class="tb-btn" onclick="showExportModal()">Export Cards</button>
+  </div>
+</div>
+
+<!-- TEMPLATE MODAL -->
+<div class="modal-overlay" id="template-modal">
+  <div class="modal" style="width:520px;max-width:95vw">
+    <h2>Choose a Card Template</h2>
+    <p>Select a starter layout to begin with. You can customise everything after.</p>
+    <div class="template-grid" id="template-grid" style="max-height:400px;overflow-y:auto"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="primary-btn" id="template-apply-btn" onclick="applySelectedTemplate()" disabled>Apply Template</button>
+      <button class="secondary-btn" style="width:auto;padding:8px 16px" onclick="closeTemplateModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE RELINK MODAL -->
+<div class="modal-overlay" id="relink-modal">
+  <div class="modal" style="width:520px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <h2>⚠️ Missing Images</h2>
+    <p>Some images referenced in your project couldn't be found. You can relink them by selecting a new image folder.</p>
+    <div class="relink-list" id="relink-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="primary-btn" onclick="relinkImages()">📁 Browse for Image Folder</button>
+      <button class="secondary-btn" style="width:auto;padding:8px 16px" onclick="closeRelinkModal()">Skip</button>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-resize" id="sidebar-resize"></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="library" onclick="switchTab('library')">Library<span class="tab-tooltip">Saved elements you can reuse across projects</span></button>
+      <button class="tab-btn" data-tab="data" onclick="switchTab('data')">Data<span class="tab-tooltip">Import spreadsheets and bind columns to card elements</span></button>
+      <button class="tab-btn" data-tab="editor" onclick="switchTab('editor')">Editor<span class="tab-tooltip">Edit your card data in a spreadsheet grid</span></button>
+      <button class="tab-btn" data-tab="elements" onclick="switchTab('elements')">Elements<span class="tab-tooltip">Build cards from scratch using individual text, image, and shape elements</span></button>
+    </div>
+
+    <!-- LIBRARY TAB (now first/default) -->
+    <div class="tab-content active" id="tab-library">
+      <span class="section-label">Saved Custom Elements</span>
+      <p style="color:#666;font-size:10px;margin-bottom:8px;line-height:1.4">Select an element on the canvas and click "Save to Library" to reuse it across projects.</p>
+      <button class="secondary-btn" style="font-size:11px;margin-bottom:10px" onclick="saveToLibrary()" id="save-lib-btn" disabled>
+        + Save Selected to Library
+      </button>
+      <div id="library-list"></div>
+    </div>
+
+    <!-- DATA TAB -->
+    <div class="tab-content" id="tab-data">
+      <div id="data-panel"></div>
+    </div>
+
+    <!-- EDITOR TAB -->
+    <div class="tab-content" id="tab-editor" style="padding:0">
+      <div id="editor-panel"></div>
+    </div>
+
+    <!-- ELEMENTS TAB (now last) -->
+    <div class="tab-content" id="tab-elements">
+      <span class="section-label">Built-in Elements</span>
+      <p style="color:#555;font-size:10px;margin-bottom:8px;line-height:1.4">Add individual elements to build a card layout from scratch.</p>
+      <div id="preset-list"></div>
+      <div style="margin-top:12px;display:flex;gap:4px;flex-wrap:wrap;position:relative">
+        <button class="action-btn" onclick="toggleAddElementPopover()" title="Add a new element" style="color:#a78bfa;font-weight:600;font-size:12px">+</button>
+        <button class="action-btn" onclick="doUndo()" title="Undo (Ctrl+Z)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></button>
+        <button class="action-btn" onclick="doRedo()" title="Redo (Ctrl+Shift+Z)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>
+        <button class="toggle-btn" id="snap-toggle" onclick="toggleSnap()" title="Snap elements to grid (G)">⊞ Snap</button>
+        <button class="toggle-btn" id="guides-toggle" onclick="toggleGuides()" title="Show alignment guides when dragging (A)">⫼ Guides</button>
+        <button class="action-btn" onclick="checkMissingImages()" title="Check for missing images and relink them">🔗 Relink</button>
+        <!-- Add Element Popover -->
+        <div class="add-el-popover" id="add-el-popover">
+          <h4>New Element</h4>
+          <div class="add-el-type-btns">
+            <div class="add-el-type-btn selected" data-atype="text" onclick="selectAddType('text')"><span class="type-icon">T</span>Text</div>
+            <div class="add-el-type-btn" data-atype="image" onclick="selectAddType('image')"><span class="type-icon">🖼</span>Image</div>
+            <div class="add-el-type-btn" data-atype="shape" onclick="selectAddType('shape')"><span class="type-icon">▢</span>Shape</div>
+          </div>
+          <div class="add-el-fields">
+            <div class="add-el-row"><label>Label</label><input class="pi" id="add-el-label" value="New Element" style="flex:1"></div>
+            <div class="add-el-row"><label>Width</label><input type="number" class="pi" id="add-el-w" value="150" min="20" max="375" style="width:60px"><label style="min-width:auto">Height</label><input type="number" class="pi" id="add-el-h" value="40" min="20" max="525" style="width:60px"></div>
+            <div class="add-el-row" id="add-el-shape-row" style="display:none"><label>Shape</label>
+              <select class="pi" id="add-el-shape" style="flex:1">
+                <option value="rect">Rectangle</option>
+                <option value="rounded">Rounded Rectangle</option>
+                <option value="circle">Circle</option>
+                <option value="divider">Horizontal Divider</option>
+              </select>
+            </div>
+            <button class="primary-btn" style="margin-top:6px;padding:8px" onclick="addCustomElement()">Add to Canvas</button>
+          </div>
+        </div>
+      </div>
+      <div id="status-indicators" style="margin-top:8px"></div>
+    </div>
+
+    <!-- LAYERS -->
+    <div class="layers">
+      <span class="section-label" style="padding:0 4px">Layers</span>
+      <div id="layers-list" style="max-height:150px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area" id="canvas-area" onclick="deselectAll(event)">
+    <div class="canvas-dots"></div>
+    <div id="empty-state" style="position:absolute;text-align:center;color:#555">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7h8M8 11h5M8 15h6"/></svg>
+      <p style="margin-top:6px;font-size:13px">Start building your card</p>
+      <p style="font-size:11px;color:#444">Add elements from the left panel or choose a template</p>
+    </div>
+    <div id="card-wrapper" style="transform-origin:center center">
+      <div class="card-canvas" id="card-canvas"></div>
+      <div id="snap-guides" style="position:absolute;inset:0;pointer-events:none;z-index:9998"></div>
+    </div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomOut()" title="Zoom out (-)">−</button>
+      <span class="zoom-label" id="zoom-badge">100%</span>
+      <button class="zoom-btn" onclick="zoomIn()" title="Zoom in (+)">+</button>
+      <button class="zoom-btn" onclick="zoomFit()" title="Fit to window" style="font-size:11px">⊡</button>
+    </div>
+  </div>
+
+  <!-- PROPS PANEL -->
+  <div class="props-panel">
+    <div id="props-area"></div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- CONTEXT MENU -->
+<div class="context-menu" id="context-menu" style="display:none"></div>
+
+<!-- EXPORT MODAL -->
+<div class="modal-overlay" id="export-modal">
+  <div class="modal" style="width:680px;max-width:95vw;max-height:90vh;overflow-y:auto">
+    <h2 id="export-title">Export Cards</h2>
+    <div style="display:flex;gap:16px">
+      <!-- Settings column -->
+      <div style="flex:1;min-width:220px">
+        <span class="pl">Export Mode</span>
+        <select class="pi" id="export-mode" style="margin-bottom:8px" onchange="updateExportPreview()">
+          <option value="individual">Individual Cards</option>
+          <option value="sheets" selected>Print Sheets (multiple per page)</option>
+        </select>
+
+        <span class="pl">Format</span>
+        <select class="pi" id="export-format" style="width:auto;margin-bottom:8px"><option value="png">PNG</option><option value="jpg">JPG</option></select>
+
+        <span class="pl">Render Scale</span>
+        <select class="pi" id="export-scale" style="width:auto;margin-bottom:8px"><option value="1">1x</option><option value="2" selected>2x (recommended)</option><option value="3">3x</option></select>
+
+        <div id="sheet-options">
+          <div style="border-top:1px solid #333;margin:8px 0;padding-top:8px">
+            <span class="pl">Page Size (mm)</span>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <div style="flex:1"><span class="pl" style="font-size:8px">Width</span><input type="number" class="pi" id="page-w-mm" value="210" min="50" max="1000" onchange="updateExportPreview()"></div>
+              <div style="flex:1"><span class="pl" style="font-size:8px">Height</span><input type="number" class="pi" id="page-h-mm" value="297" min="50" max="1000" onchange="updateExportPreview()"></div>
+            </div>
+            <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+              <button class="action-btn" style="font-size:9px" onclick="setPageSize(210,297)">A4</button>
+              <button class="action-btn" style="font-size:9px" onclick="setPageSize(216,279)">Letter</button>
+              <button class="action-btn" style="font-size:9px" onclick="setPageSize(297,420)">A3</button>
+            </div>
+
+            <span class="pl">Card Size (mm)</span>
+            <div style="display:flex;gap:6px;margin-bottom:6px">
+              <div style="flex:1"><span class="pl" style="font-size:8px">Width</span><input type="number" class="pi" id="card-w-mm" value="63" min="20" max="300" onchange="updateExportPreview()"></div>
+              <div style="flex:1"><span class="pl" style="font-size:8px">Height</span><input type="number" class="pi" id="card-h-mm" value="88" min="20" max="300" onchange="updateExportPreview()"></div>
+            </div>
+            <div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">
+              <button class="action-btn" style="font-size:9px" onclick="setCardSize(63,88)">Poker (63×88)</button>
+              <button class="action-btn" style="font-size:9px" onclick="setCardSize(57,89)">Euro (57×89)</button>
+              <button class="action-btn" style="font-size:9px" onclick="setCardSize(70,120)">Tarot (70×120)</button>
+            </div>
+
+            <span class="pl">Gap between cards (mm)</span>
+            <input type="number" class="pi" id="card-gap-mm" value="6" min="0" max="20" style="width:60px;margin-bottom:8px" onchange="updateExportPreview()">
+
+            <div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:#c0c0d0;cursor:pointer">
+                <input type="checkbox" id="crop-marks-cb" checked> Crop marks
+              </label>
+              <label style="display:flex;align-items:center;gap:6px;font-size:10px;color:#c0c0d0;cursor:pointer">
+                <input type="checkbox" id="bleed-cb"> Bleed area (3mm)
+              </label>
+            </div>
+
+            <div id="sheet-info" style="font-size:10px;color:#8a8a9a;margin-top:8px;line-height:1.4"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview column -->
+      <div style="flex:1;min-width:200px" id="export-preview-wrap">
+        <span class="pl">Preview</span>
+        <div id="export-preview" style="background:#fff;border-radius:4px;position:relative;margin-top:4px;border:1px solid #3a3a4a"></div>
+        <div style="display:flex;align-items:center;gap:5px;margin-top:6px" id="sheet-nav">
+          <button class="nav-btn" onclick="previewPage(-1)" id="prev-page-btn" disabled>&larr;</button>
+          <span style="flex:1;text-align:center;color:#e0e0e8;font-size:10px" id="page-indicator">Page 1 / 1</span>
+          <button class="nav-btn" onclick="previewPage(1)" id="next-page-btn" disabled>&rarr;</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="export-progress" style="display:none">
+      <p id="export-progress-text">Exporting page 0 / 0...</p>
+      <div class="progress-bar"><div class="progress-fill" id="export-fill" style="width:0"></div></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="primary-btn" id="export-start-btn" onclick="startBatchExport()">Choose Folder & Export</button>
+      <button class="secondary-btn" style="width:auto;padding:8px 16px" onclick="closeExportModal()">Cancel</button>
+    </div>
+    <div id="export-done" style="display:none;margin-top:12px;padding:10px;background:#1a2e1a;border:1px solid #2a4a2a;border-radius:6px;color:#6fcf6f;font-size:12px"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const CARD_W = 375, CARD_H = 525;
+let elements = [], selectedId = null, history = [], histIdx = -1;
+let importedData = null, dataColumns = [], currentRow = 0;
+let imageStore = {}, scale = 1, _uid = 1;
+let projectPath = null, isDirty = false;
+let elementLibrary = [];
+let perCardOverrides = {}; // { rowIndex: { elementLabel: { fontSize: N } } }
+let snapEnabled = false, guidesEnabled = true;
+let snapGridSize = 15; // pixels
+let selectedTemplateId = null;
+
+// ============================================================
+// CARD TEMPLATES
+// ============================================================
+const CARD_TEMPLATES = [
+  {
+    id: 'classic-tcg',
+    name: 'Classic TCG',
+    desc: 'Traditional TCG layout with title, art, description, and stats.',
+    preview: [
+      { x:8,y:3,w:84,h:8,bg:'#d4c5a9',r:2 },
+      { x:8,y:14,w:84,h:45,bg:'#c8d0c0',r:2 },
+      { x:8,y:62,w:84,h:18,bg:'#e8e0d0',r:1 },
+      { x:8,y:83,w:20,h:8,bg:'rgba(192,57,43,0.2)',r:2 },
+      { x:72,y:83,w:20,h:8,bg:'rgba(41,128,185,0.2)',r:2 },
+    ],
+    elements: [
+      { type:'shape',label:'Card Background',d:{x:0,y:0,w:375,h:525,bg:'linear-gradient(170deg,#f5f0e8 0%,#e8ddd0 100%)',borderColor:'#b8a88a',borderWidth:3,opacity:1,rotation:0,borderRadius:12}},
+      { type:'text',label:'Card Title',d:{text:'Card Name',x:20,y:18,w:335,h:40,fontSize:24,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#1a1a2e',align:'center',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{card_name}}',borderRadius:0,letterSpacing:0}},
+      { type:'text',label:'Card Type',d:{text:'Type',x:20,y:62,w:100,h:22,fontSize:11,fontFamily:'Outfit',fontWeight:'600',fontStyle:'normal',color:'#e67e22',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:0.85,rotation:0,placeholder:'{{type}}',borderRadius:0,letterSpacing:1}},
+      { type:'text',label:'Mana Cost',d:{text:'5',x:325,y:18,w:36,h:36,fontSize:20,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#fff',align:'center',bg:'#8e44ad',borderColor:'#6c3483',borderWidth:2,opacity:1,rotation:0,placeholder:'{{mana_cost}}',borderRadius:18,letterSpacing:0}},
+      { type:'image',label:'Card Art',d:{x:20,y:88,w:335,h:230,src:'',placeholder:'{{art_image}}',bg:'#ddd',borderColor:'#c0b8a8',borderWidth:1,opacity:1,rotation:0,fit:'cover',borderRadius:6}},
+      { type:'text',label:'Description',d:{text:'Card description goes here.',x:20,y:330,w:335,h:80,fontSize:13,fontFamily:'EB Garamond',fontWeight:'normal',fontStyle:'normal',color:'#2d2d44',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{description}}',borderRadius:0,letterSpacing:0}},
+      { type:'text',label:'Flavour Text',d:{text:'"In the ember glow, legends are forged."',x:20,y:418,w:335,h:50,fontSize:12,fontFamily:'Cormorant Garamond',fontWeight:'normal',fontStyle:'italic',color:'#6b5b73',align:'center',bg:'rgba(245,240,248,0.7)',borderColor:'#c9b8d4',borderWidth:1,opacity:1,rotation:0,placeholder:'{{flavour_text}}',borderRadius:4,letterSpacing:0}},
+      { type:'text',label:'Attack',d:{text:'85',x:20,y:478,w:60,h:32,fontSize:22,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#c0392b',align:'center',bg:'rgba(192,57,43,0.08)',borderColor:'#c0392b',borderWidth:1,opacity:1,rotation:0,placeholder:'{{attack}}',borderRadius:4,letterSpacing:0}},
+      { type:'text',label:'Defense',d:{text:'60',x:295,y:478,w:60,h:32,fontSize:22,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#2980b9',align:'center',bg:'rgba(41,128,185,0.08)',borderColor:'#2980b9',borderWidth:1,opacity:1,rotation:0,placeholder:'{{defense}}',borderRadius:4,letterSpacing:0}},
+    ]
+  },
+  {
+    id: 'dark-fantasy',
+    name: 'Dark Fantasy',
+    desc: 'Moody dark theme with ornate borders. Great for horror or gothic card games.',
+    preview: [
+      { x:4,y:4,w:92,h:92,bg:'#1a1a2e',r:3 },
+      { x:10,y:8,w:80,h:8,bg:'#2a2a4a',r:1 },
+      { x:10,y:20,w:80,h:42,bg:'#252540',r:2 },
+      { x:10,y:65,w:80,h:16,bg:'#1e1e38',r:1 },
+      { x:10,y:84,w:35,h:7,bg:'rgba(231,76,60,0.3)',r:2 },
+      { x:55,y:84,w:35,h:7,bg:'rgba(155,89,182,0.3)',r:2 },
+    ],
+    elements: [
+      { type:'shape',label:'Card Background',d:{x:0,y:0,w:375,h:525,bg:'linear-gradient(170deg,#1a1a2e 0%,#0d0d1a 100%)',borderColor:'#4a3a6a',borderWidth:3,opacity:1,rotation:0,borderRadius:12}},
+      { type:'shape',label:'Inner Frame',d:{x:12,y:12,w:351,h:501,bg:'transparent',borderColor:'#3a2a5a',borderWidth:1,opacity:0.6,rotation:0,borderRadius:8}},
+      { type:'text',label:'Card Title',d:{text:'Card Name',x:20,y:20,w:335,h:42,fontSize:26,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#e8d5b5',align:'center',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{card_name}}',borderRadius:0,letterSpacing:2}},
+      { type:'image',label:'Card Art',d:{x:20,y:70,w:335,h:240,src:'',placeholder:'{{art_image}}',bg:'#252540',borderColor:'#4a3a6a',borderWidth:1,opacity:1,rotation:0,fit:'cover',borderRadius:4}},
+      { type:'text',label:'Description',d:{text:'A creature of shadow and flame.',x:20,y:322,w:335,h:80,fontSize:13,fontFamily:'Spectral',fontWeight:'normal',fontStyle:'normal',color:'#b0a0c0',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{description}}',borderRadius:0,letterSpacing:0}},
+      { type:'text',label:'Flavour Text',d:{text:'"The darkness does not sleep."',x:20,y:410,w:335,h:46,fontSize:12,fontFamily:'Cormorant Garamond',fontWeight:'normal',fontStyle:'italic',color:'#8a6aaa',align:'center',bg:'rgba(40,30,60,0.6)',borderColor:'#4a3a6a',borderWidth:1,opacity:1,rotation:0,placeholder:'{{flavour_text}}',borderRadius:4,letterSpacing:0}},
+      { type:'text',label:'Attack',d:{text:'90',x:20,y:470,w:60,h:34,fontSize:22,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#e74c3c',align:'center',bg:'rgba(231,76,60,0.1)',borderColor:'#e74c3c',borderWidth:1,opacity:1,rotation:0,placeholder:'{{attack}}',borderRadius:4,letterSpacing:0}},
+      { type:'text',label:'Defense',d:{text:'45',x:295,y:470,w:60,h:34,fontSize:22,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#9b59b6',align:'center',bg:'rgba(155,89,182,0.1)',borderColor:'#9b59b6',borderWidth:1,opacity:1,rotation:0,placeholder:'{{defense}}',borderRadius:4,letterSpacing:0}},
+    ]
+  },
+  {
+    id: 'minimalist',
+    name: 'Clean Minimalist',
+    desc: 'Modern, flat design with lots of whitespace. Good for abstract or simple games.',
+    preview: [
+      { x:4,y:4,w:92,h:92,bg:'#ffffff',r:3 },
+      { x:12,y:10,w:76,h:6,bg:'#e0e0e0',r:1 },
+      { x:12,y:20,w:76,h:48,bg:'#f0f0f0',r:2 },
+      { x:12,y:72,w:76,h:12,bg:'#fafafa',r:1 },
+      { x:12,y:88,w:20,h:5,bg:'#e8e8e8',r:1 },
+      { x:68,y:88,w:20,h:5,bg:'#e8e8e8',r:1 },
+    ],
+    elements: [
+      { type:'shape',label:'Card Background',d:{x:0,y:0,w:375,h:525,bg:'#ffffff',borderColor:'#e0e0e0',borderWidth:1,opacity:1,rotation:0,borderRadius:12}},
+      { type:'text',label:'Card Title',d:{text:'Card Name',x:24,y:24,w:327,h:36,fontSize:22,fontFamily:'Source Sans 3',fontWeight:'700',fontStyle:'normal',color:'#1a1a1a',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{card_name}}',borderRadius:0,letterSpacing:0}},
+      { type:'shape',label:'Divider',d:{x:24,y:64,w:327,h:1,bg:'#e0e0e0',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,borderRadius:0}},
+      { type:'image',label:'Card Art',d:{x:24,y:76,w:327,h:250,src:'',placeholder:'{{art_image}}',bg:'#f5f5f5',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,fit:'cover',borderRadius:8}},
+      { type:'text',label:'Description',d:{text:'A simple description.',x:24,y:338,w:327,h:70,fontSize:14,fontFamily:'Source Sans 3',fontWeight:'normal',fontStyle:'normal',color:'#444',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{description}}',borderRadius:0,letterSpacing:0}},
+      { type:'text',label:'Attack',d:{text:'7',x:24,y:475,w:50,h:30,fontSize:20,fontFamily:'Space Mono',fontWeight:'bold',fontStyle:'normal',color:'#e74c3c',align:'center',bg:'transparent',borderColor:'#e0e0e0',borderWidth:1,opacity:1,rotation:0,placeholder:'{{attack}}',borderRadius:4,letterSpacing:0}},
+      { type:'text',label:'Defense',d:{text:'4',x:301,y:475,w:50,h:30,fontSize:20,fontFamily:'Space Mono',fontWeight:'bold',fontStyle:'normal',color:'#3498db',align:'center',bg:'transparent',borderColor:'#e0e0e0',borderWidth:1,opacity:1,rotation:0,placeholder:'{{defense}}',borderRadius:4,letterSpacing:0}},
+    ]
+  },
+  {
+    id: 'anime-battle',
+    name: 'Anime Battle',
+    desc: 'Bold, colourful layout inspired by anime-style card games. Vibrant gradients.',
+    preview: [
+      { x:4,y:4,w:92,h:92,bg:'linear-gradient(135deg,#667eea,#764ba2)',r:3 },
+      { x:8,y:6,w:84,h:10,bg:'rgba(255,255,255,0.15)',r:2 },
+      { x:8,y:20,w:84,h:44,bg:'rgba(255,255,255,0.1)',r:2 },
+      { x:8,y:68,w:84,h:14,bg:'rgba(0,0,0,0.2)',r:1 },
+      { x:8,y:85,w:25,h:8,bg:'rgba(255,107,107,0.5)',r:2 },
+      { x:67,y:85,w:25,h:8,bg:'rgba(78,205,196,0.5)',r:2 },
+    ],
+    elements: [
+      { type:'shape',label:'Card Background',d:{x:0,y:0,w:375,h:525,bg:'linear-gradient(135deg,#667eea 0%,#764ba2 100%)',borderColor:'#ffffff',borderWidth:2,opacity:1,rotation:0,borderRadius:12}},
+      { type:'text',label:'Card Title',d:{text:'HERO NAME',x:16,y:16,w:300,h:44,fontSize:28,fontFamily:'Outfit',fontWeight:'800',fontStyle:'normal',color:'#ffffff',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{card_name}}',borderRadius:0,letterSpacing:2}},
+      { type:'shape',label:'Level Badge',d:{x:328,y:16,w:36,h:36,bg:'#ffd93d',borderColor:'#fff',borderWidth:2,opacity:1,rotation:0,borderRadius:18}},
+      { type:'text',label:'Level',d:{text:'5',x:328,y:16,w:36,h:36,fontSize:18,fontFamily:'Outfit',fontWeight:'800',fontStyle:'normal',color:'#1a1a2e',align:'center',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{level}}',borderRadius:0,letterSpacing:0}},
+      { type:'image',label:'Card Art',d:{x:16,y:64,w:343,h:250,src:'',placeholder:'{{art_image}}',bg:'rgba(255,255,255,0.1)',borderColor:'rgba(255,255,255,0.3)',borderWidth:1,opacity:1,rotation:0,fit:'cover',borderRadius:8}},
+      { type:'text',label:'Description',d:{text:'An unstoppable force.',x:16,y:326,w:343,h:70,fontSize:13,fontFamily:'Outfit',fontWeight:'normal',fontStyle:'normal',color:'rgba(255,255,255,0.9)',align:'left',bg:'rgba(0,0,0,0.2)',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{description}}',borderRadius:6,letterSpacing:0}},
+      { type:'text',label:'Flavour Text',d:{text:'"The stars themselves tremble."',x:16,y:404,w:343,h:42,fontSize:11,fontFamily:'Lora',fontWeight:'normal',fontStyle:'italic',color:'rgba(255,255,255,0.6)',align:'center',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{flavour_text}}',borderRadius:0,letterSpacing:0}},
+      { type:'text',label:'Attack',d:{text:'120',x:16,y:460,w:70,h:40,fontSize:24,fontFamily:'Outfit',fontWeight:'800',fontStyle:'normal',color:'#ff6b6b',align:'center',bg:'rgba(0,0,0,0.3)',borderColor:'#ff6b6b',borderWidth:2,opacity:1,rotation:0,placeholder:'{{attack}}',borderRadius:6,letterSpacing:0}},
+      { type:'text',label:'Defense',d:{text:'80',x:289,y:460,w:70,h:40,fontSize:24,fontFamily:'Outfit',fontWeight:'800',fontStyle:'normal',color:'#4ecdc4',align:'center',bg:'rgba(0,0,0,0.3)',borderColor:'#4ecdc4',borderWidth:2,opacity:1,rotation:0,placeholder:'{{defense}}',borderRadius:6,letterSpacing:0}},
+    ]
+  },
+  {
+    id: 'vintage',
+    name: 'Vintage Parchment',
+    desc: 'Old-school look with warm tones and serif typography. Perfect for historical or RPG themes.',
+    preview: [
+      { x:4,y:4,w:92,h:92,bg:'linear-gradient(180deg,#d4c5a0,#c0aa78)',r:2 },
+      { x:10,y:8,w:80,h:8,bg:'rgba(80,50,20,0.15)',r:1 },
+      { x:10,y:20,w:80,h:42,bg:'rgba(80,50,20,0.1)',r:1 },
+      { x:10,y:66,w:80,h:16,bg:'rgba(80,50,20,0.08)',r:1 },
+      { x:10,y:86,w:80,h:6,bg:'rgba(80,50,20,0.12)',r:1 },
+    ],
+    elements: [
+      { type:'shape',label:'Card Background',d:{x:0,y:0,w:375,h:525,bg:'linear-gradient(180deg,#d4c5a0 0%,#c0aa78 100%)',borderColor:'#8a7050',borderWidth:4,opacity:1,rotation:0,borderRadius:8}},
+      { type:'shape',label:'Inner Border',d:{x:10,y:10,w:355,h:505,bg:'transparent',borderColor:'#a08060',borderWidth:1,opacity:0.5,rotation:0,borderRadius:6}},
+      { type:'text',label:'Card Title',d:{text:'Ancient Relic',x:20,y:20,w:335,h:42,fontSize:26,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#3a2810',align:'center',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{card_name}}',borderRadius:0,letterSpacing:1}},
+      { type:'shape',label:'Title Underline',d:{x:80,y:62,w:215,h:2,bg:'#8a7050',borderColor:'transparent',borderWidth:0,opacity:0.5,rotation:0,borderRadius:1}},
+      { type:'image',label:'Card Art',d:{x:24,y:74,w:327,h:230,src:'',placeholder:'{{art_image}}',bg:'#c8b890',borderColor:'#8a7050',borderWidth:2,opacity:1,rotation:0,fit:'cover',borderRadius:2}},
+      { type:'text',label:'Description',d:{text:'A relic from ages past.',x:24,y:316,w:327,h:80,fontSize:14,fontFamily:'Crimson Text',fontWeight:'normal',fontStyle:'normal',color:'#3a2810',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{description}}',borderRadius:0,letterSpacing:0}},
+      { type:'text',label:'Flavour Text',d:{text:'"Time forgets nothing."',x:24,y:402,w:327,h:44,fontSize:13,fontFamily:'Crimson Text',fontWeight:'normal',fontStyle:'italic',color:'#6a5030',align:'center',bg:'rgba(200,184,144,0.5)',borderColor:'#a08060',borderWidth:1,opacity:1,rotation:0,placeholder:'{{flavour_text}}',borderRadius:2,letterSpacing:0}},
+      { type:'text',label:'Attack',d:{text:'6',x:24,y:462,w:54,h:40,fontSize:24,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#8b0000',align:'center',bg:'rgba(139,0,0,0.06)',borderColor:'#8b0000',borderWidth:1,opacity:1,rotation:0,placeholder:'{{attack}}',borderRadius:2,letterSpacing:0}},
+      { type:'text',label:'Defense',d:{text:'4',x:297,y:462,w:54,h:40,fontSize:24,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#2e5a2e',align:'center',bg:'rgba(46,90,46,0.06)',borderColor:'#2e5a2e',borderWidth:1,opacity:1,rotation:0,placeholder:'{{defense}}',borderRadius:2,letterSpacing:0}},
+    ]
+  }
+];
+
+const FONTS = ["Cinzel","Pirata One","MedievalSharp","Uncial Antiqua","Philosopher","EB Garamond","Cormorant Garamond","Lora","Merriweather","Crimson Text","Spectral","Source Sans 3","Outfit","Space Mono","JetBrains Mono"];
+
+const PRESETS = [
+  { type:"text", label:"Card Title", d:{ text:"Card Name", x:30,y:30,w:315,h:40, fontSize:26,fontFamily:"Cinzel",fontWeight:"bold",fontStyle:"normal",color:"#1a1a2e",align:"center",bg:"transparent",borderColor:"transparent",borderWidth:0,opacity:1,rotation:0,placeholder:"{{card_name}}",borderRadius:0,letterSpacing:0 }},
+  { type:"text", label:"Description", d:{ text:"Card description goes here.", x:30,y:340,w:315,h:80, fontSize:13,fontFamily:"EB Garamond",fontWeight:"normal",fontStyle:"normal",color:"#2d2d44",align:"left",bg:"transparent",borderColor:"transparent",borderWidth:0,opacity:1,rotation:0,placeholder:"{{description}}",borderRadius:0,letterSpacing:0 }},
+  { type:"text", label:"Flavour Text", d:{ text:'"In the ember glow, legends are forged."', x:30,y:425,w:315,h:50, fontSize:12,fontFamily:"Cormorant Garamond",fontWeight:"normal",fontStyle:"italic",color:"#6b5b73",align:"center",bg:"rgba(245,240,248,0.7)",borderColor:"#c9b8d4",borderWidth:1,opacity:1,rotation:0,placeholder:"{{flavour_text}}",borderRadius:4,letterSpacing:0 }},
+  { type:"text", label:"Attack Stat", d:{ text:"85", x:30,y:480,w:60,h:32, fontSize:22,fontFamily:"Outfit",fontWeight:"bold",fontStyle:"normal",color:"#c0392b",align:"center",bg:"rgba(192,57,43,0.08)",borderColor:"#c0392b",borderWidth:1,opacity:1,rotation:0,placeholder:"{{attack}}",borderRadius:4,letterSpacing:0 }},
+  { type:"text", label:"Defense Stat", d:{ text:"60", x:285,y:480,w:60,h:32, fontSize:22,fontFamily:"Outfit",fontWeight:"bold",fontStyle:"normal",color:"#2980b9",align:"center",bg:"rgba(41,128,185,0.08)",borderColor:"#2980b9",borderWidth:1,opacity:1,rotation:0,placeholder:"{{defense}}",borderRadius:4,letterSpacing:0 }},
+  { type:"text", label:"Card Type", d:{ text:"Fire", x:30,y:75,w:100,h:24, fontSize:11,fontFamily:"Outfit",fontWeight:"600",fontStyle:"normal",color:"#e67e22",align:"left",bg:"transparent",borderColor:"transparent",borderWidth:0,opacity:0.85,rotation:0,placeholder:"{{type}}",borderRadius:0,letterSpacing:1 }},
+  { type:"text", label:"Mana Cost", d:{ text:"5", x:325,y:30,w:36,h:36, fontSize:20,fontFamily:"Cinzel",fontWeight:"bold",fontStyle:"normal",color:"#fff",align:"center",bg:"#8e44ad",borderColor:"#6c3483",borderWidth:2,opacity:1,rotation:0,placeholder:"{{mana_cost}}",borderRadius:18,letterSpacing:0 }},
+  { type:"image", label:"Card Art", d:{ x:30,y:100,w:315,h:230, src:"",placeholder:"{{art_image}}",bg:"#ddd",borderColor:"#aaa",borderWidth:1,opacity:1,rotation:0,fit:"cover",borderRadius:4 }},
+  { type:"shape", label:"Card Background", d:{ x:0,y:0,w:CARD_W,h:CARD_H, bg:"linear-gradient(170deg,#f5f0e8 0%,#e8ddd0 100%)",borderColor:"#b8a88a",borderWidth:3,opacity:1,rotation:0,borderRadius:12 }},
+  { type:"shape", label:"Rectangle", d:{ x:50,y:50,w:120,h:80, bg:"#3498db",borderColor:"#2980b9",borderWidth:1,opacity:0.9,rotation:0,borderRadius:4 }},
+  { type:"text", label:"Custom Text", d:{ text:"Custom", x:50,y:50,w:150,h:30, fontSize:16,fontFamily:"Outfit",fontWeight:"normal",fontStyle:"normal",color:"#333",align:"left",bg:"transparent",borderColor:"transparent",borderWidth:0,opacity:1,rotation:0,placeholder:"",borderRadius:0,letterSpacing:0 }},
+];
+
+// ============================================================
+// HELPERS
+// ============================================================
+function uid() { return 'el_'+(_uid++); }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function resolve(t,r) { if(!r||!t) return t; return String(t).replace(/\{\{([^}]+)\}\}/g,(_,k)=>{const v=r[k.trim()]; return v!==undefined?String(v).trim():'{{'+k+'}}'}); }
+function getRow() { return importedData?importedData[currentRow]:null; }
+function markDirty() { isDirty=true; document.getElementById('unsaved-dot').style.display='inline'; }
+function markClean() { isDirty=false; document.getElementById('unsaved-dot').style.display='none'; }
+
+function resolveImage(v) {
+  if(!v) return '';
+  if(v.startsWith('data:')||v.startsWith('blob:')||v.startsWith('http://')||v.startsWith('https://')) return v;
+  const t=v.trim();
+  if(!t) return '';
+  // Direct lookups
+  if(imageStore[t]) return imageStore[t];
+  if(imageStore[t.toLowerCase()]) return imageStore[t.toLowerCase()];
+  const fn=t.split(/[/\\]/).pop();
+  if(imageStore[fn]) return imageStore[fn];
+  if(imageStore[fn.toLowerCase()]) return imageStore[fn.toLowerCase()];
+  const ne=fn.replace(/\.[^.]+$/,'');
+  if(imageStore[ne]) return imageStore[ne];
+  if(imageStore[ne.toLowerCase()]) return imageStore[ne.toLowerCase()];
+  // Normalize: collapse internal whitespace (handles "Spell .jpg" -> "Spell.jpg")
+  const norm=fn.replace(/\s+/g,'').toLowerCase();
+  for(const key in imageStore){
+    const kNorm=key.split(/[/\\]/).pop().replace(/\s+/g,'').toLowerCase();
+    if(kNorm===norm) return imageStore[key];
+  }
+  // Try appending common extensions (handles data like "Spell" without an extension)
+  const exts=['.png','.jpg','.jpeg','.gif','.webp','.svg','.bmp'];
+  const baseName=ne.toLowerCase().replace(/\s+/g,'');
+  for(const ext of exts){
+    for(const key in imageStore){
+      const kNorm=key.split(/[/\\]/).pop().replace(/\s+/g,'').toLowerCase();
+      if(kNorm===baseName+ext) return imageStore[key];
+    }
+  }
+  // Fuzzy fallback: case-insensitive match on name-without-extension
+  const neLower=ne.toLowerCase();
+  for(const key in imageStore){
+    const kLower=key.toLowerCase();
+    const kFn=kLower.split(/[/\\]/).pop();
+    const kNe=kFn.replace(/\.[^.]+$/,'');
+    if(kNe===neLower) return imageStore[key];
+  }
+  return '';
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function pushHistory() { history=history.slice(0,histIdx+1); history.push(clone(elements)); histIdx=history.length-1; }
+function doUndo() { if(histIdx>0){histIdx--;elements=clone(history[histIdx]);renderAll();} }
+function doRedo() { if(histIdx<history.length-1){histIdx++;elements=clone(history[histIdx]);renderAll();} }
+
+// ============================================================
+// ELEMENT CRUD
+// ============================================================
+function addElement(preset) {
+  const el={id:uid(),label:preset.label,type:preset.type,...clone(preset.d),zIndex:elements.length};
+  elements.push(el); selectedId=el.id; pushHistory(); markDirty(); renderAll();
+}
+function updateElement(id,u) { const el=elements.find(e=>e.id===id); if(!el)return; Object.assign(el,u); renderCard(); markDirty(); }
+function updateElementFull(id,u) { const el=elements.find(e=>e.id===id); if(!el)return; Object.assign(el,u); renderCard(); renderProps(); markDirty(); }
+function deleteElement(id) { elements=elements.filter(e=>e.id!==id); if(selectedId===id)selectedId=null; pushHistory(); markDirty(); renderAll(); }
+function duplicateElement(id) { const o=elements.find(e=>e.id===id); if(!o)return; const d={...clone(o),id:uid(),x:o.x+15,y:o.y+15}; elements.push(d); selectedId=d.id; pushHistory(); markDirty(); renderAll(); }
+function reorderElement(i,dir) { const ni=i+dir; if(ni<0||ni>=elements.length)return; [elements[i],elements[ni]]=[elements[ni],elements[i]]; elements.forEach((e,j)=>e.zIndex=j); pushHistory(); markDirty(); renderAll(); }
+
+// ============================================================
+// RENDER CARD
+// ============================================================
+function renderCard() {
+  const c=document.getElementById('card-canvas');
+  c.style.width=CARD_W+'px'; c.style.height=CARD_H+'px'; c.innerHTML='';
+  const row=getRow();
+  elements.forEach(el=>{
+    const d=document.createElement('div');
+    d.className='card-el'+(el.id===selectedId?' sel':'');
+    d.dataset.id=el.id;
+    d.style.cssText=`left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;opacity:${el.opacity??1};z-index:${el.zIndex??0};${el.rotation?'transform:rotate('+el.rotation+'deg)':''}`;
+
+    if(el.type==='shape'){
+      d.style.background=el.bg||'transparent'; d.style.border=el.borderWidth?el.borderWidth+'px solid '+el.borderColor:'none'; d.style.borderRadius=(el.borderRadius??0)+'px';
+    } else if(el.type==='image'){
+      d.style.background=el.bg||'#ddd'; d.style.border=el.borderWidth?el.borderWidth+'px solid '+el.borderColor:'none';
+      d.style.borderRadius=(el.borderRadius??0)+'px'; d.style.overflow='hidden'; d.style.display='flex'; d.style.alignItems='center'; d.style.justifyContent='center';
+      const raw=resolve(el.src,row)||resolve(el.placeholder,row)||'';
+      const src=resolveImage(raw);
+      if(!src&&raw) console.warn('[TCG] Image not found for "'+raw+'" (element: '+el.label+', card: '+(currentRow+1)+')');
+      if(src){const img=document.createElement('img');img.src=src;img.style.cssText='width:100%;height:100%;object-fit:'+(el.fit||'cover');img.onerror=()=>img.style.display='none';d.appendChild(img);}
+      else{d.innerHTML='<div style="color:#999;font-size:10px;font-family:Outfit;text-align:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><div style="margin-top:3px">'+(el.placeholder||'Image')+'</div></div>';}
+    } else {
+      d.style.background=el.bg||'transparent'; d.style.border=el.borderWidth?el.borderWidth+'px solid '+el.borderColor:'none';
+      d.style.borderRadius=(el.borderRadius??0)+'px'; d.style.overflow='hidden'; d.style.display='flex'; d.style.alignItems='flex-start'; d.style.padding='4px';
+      const t=document.createElement('div');
+      // Check per-card font size override
+      const pcOverrides=perCardOverrides[currentRow]?.[el.label];
+      const effectiveFontSize=pcOverrides?.fontSize??el.fontSize;
+      t.style.cssText=`width:100%;font-family:${el.fontFamily};font-size:${effectiveFontSize}px;font-weight:${el.fontWeight||'normal'};font-style:${el.fontStyle||'normal'};color:${el.color};text-align:${el.align||'left'};line-height:1.35;letter-spacing:${el.letterSpacing??0}px;word-break:break-word;`;
+      // If we have data and a placeholder, show the resolved placeholder; otherwise show the text content
+      const displayText = (row && el.placeholder) ? resolve(el.placeholder, row) : resolve(el.text, row);
+      t.textContent=displayText; d.appendChild(t);
+    }
+    if(el.id===selectedId){
+      [{p:'top:-4px;left:-4px',c:'nw-resize',dir:'nw'},{p:'top:-4px;right:-4px',c:'ne-resize',dir:'ne'},{p:'bottom:-4px;left:-4px',c:'sw-resize',dir:'sw'},{p:'bottom:-4px;right:-4px',c:'se-resize',dir:'se'},
+       {p:'top:-4px;left:50%;margin-left:-4px',c:'n-resize',dir:'n'},{p:'bottom:-4px;left:50%;margin-left:-4px',c:'s-resize',dir:'s'},{p:'top:50%;left:-4px;margin-top:-4px',c:'w-resize',dir:'w'},{p:'top:50%;right:-4px;margin-top:-4px',c:'e-resize',dir:'e'}
+      ].forEach(h=>{const r=document.createElement('div');r.className='rh';r.style.cssText=h.p+';cursor:'+h.c;r.dataset.dir=h.dir;r.addEventListener('mousedown',e=>startResize(e,el.id,h.dir));d.appendChild(r);});
+    }
+    d.addEventListener('mousedown',e=>startDrag(e,el.id));
+    d.addEventListener('contextmenu',e=>showContextMenu(e,el.id));
+    c.appendChild(d);
+  });
+  document.getElementById('empty-state').style.display=elements.length?'none':'block';
+}
+
+// ============================================================
+// DRAG & RESIZE
+// ============================================================
+let dragState=null;
+function startDrag(e,id){if(e.target.classList.contains('rh'))return;e.stopPropagation();e.preventDefault();if(selectedId!==id)_propsRenderedForId=null;selectedId=id;const el=elements.find(x=>x.id===id);dragState={type:'drag',id,mx:e.clientX,my:e.clientY,ox:el.x,oy:el.y};renderAll();}
+function startResize(e,id,dir){e.stopPropagation();e.preventDefault();const el=elements.find(x=>x.id===id);dragState={type:'resize',id,dir,mx:e.clientX,my:e.clientY,ow:el.w,oh:el.h,ox:el.x,oy:el.y};}
+document.addEventListener('mousemove',e=>{
+  if(!dragState)return;const el=elements.find(x=>x.id===dragState.id);if(!el)return;
+  if(dragState.type==='drag'){
+    let newX=Math.round(dragState.ox+(e.clientX-dragState.mx)/scale);
+    let newY=Math.round(dragState.oy+(e.clientY-dragState.my)/scale);
+    
+    // Snap to grid
+    if(snapEnabled){newX=snapValue(newX,snapGridSize);newY=snapValue(newY,snapGridSize);}
+    
+    el.x=newX;el.y=newY;
+    
+    // Alignment guides
+    if(guidesEnabled){
+      const {guides,snappedX,snappedY}=getAlignmentGuides(el);
+      if(snappedX!==null)el.x=Math.round(snappedX);
+      if(snappedY!==null)el.y=Math.round(snappedY);
+      renderGuides(guides);
+    }
+    
+    renderCard();renderProps();
+  }
+  if(dragState.type==='resize'){const dx=(e.clientX-dragState.mx)/scale,dy=(e.clientY-dragState.my)/scale,d=dragState.dir;
+    if(d.includes('e'))el.w=Math.max(20,Math.round(dragState.ow+dx));if(d.includes('w')){el.w=Math.max(20,Math.round(dragState.ow-dx));el.x=Math.round(dragState.ox+dx);}
+    if(d.includes('s'))el.h=Math.max(20,Math.round(dragState.oh+dy));if(d.includes('n')){el.h=Math.max(20,Math.round(dragState.oh-dy));el.y=Math.round(dragState.oy+dy);}
+    if(snapEnabled){el.w=snapValue(el.w,snapGridSize);el.h=snapValue(el.h,snapGridSize);}
+    renderCard();renderProps();}
+});
+document.addEventListener('mouseup',()=>{if(dragState){dragState=null;clearGuides();pushHistory();markDirty();}});
+function deselectAll(e){if(e.target.id==='canvas-area'||e.target.classList.contains('canvas-dots')){selectedId=null;_propsRenderedForId=null;renderAll();}}
+
+// ============================================================
+// RENDER PROPS
+// ============================================================
+let _propsRenderedForId = null;
+
+function renderProps() {
+  const a=document.getElementById('props-area');
+  const el=elements.find(e=>e.id===selectedId);
+  document.getElementById('save-lib-btn').disabled=!el;
+  if(!el){_propsRenderedForId=null;a.innerHTML='<div class="empty-props"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><p style="margin-top:8px">Select an element to<br>edit properties</p></div>';return;}
+
+  // If props are already rendered for this element, just update values without rebuilding
+  if(_propsRenderedForId===el.id){
+    updatePropsValues(el);
+    return;
+  }
+  _propsRenderedForId=el.id;
+
+  const eid=el.id;
+  const fo=FONTS.map(f=>`<option value="${f}"${el.fontFamily===f?' selected':''}>${f}</option>`).join('');
+  const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+
+  let h=`<div class="props-wrap"><div class="pt">${el.type==='text'?'Text':el.type==='image'?'Image':'Shape'} — ${esc(el.label)}</div>`;
+
+  // Position & Size - use onchange (fires on blur/enter, not every key)
+  h+=`<span class="pl">Position & Size</span><div class="pr">
+    <div style="flex:1"><span class="pl">X</span><input type="number" class="pi" data-prop="x" value="${el.x}" onchange="updateElement('${eid}',{x:+this.value})"></div>
+    <div style="flex:1"><span class="pl">Y</span><input type="number" class="pi" data-prop="y" value="${el.y}" onchange="updateElement('${eid}',{y:+this.value})"></div>
+    <div style="flex:1"><span class="pl">W</span><input type="number" class="pi" data-prop="w" value="${el.w}" onchange="updateElement('${eid}',{w:+this.value})"></div>
+    <div style="flex:1"><span class="pl">H</span><input type="number" class="pi" data-prop="h" value="${el.h}" onchange="updateElement('${eid}',{h:+this.value})"></div>
+  </div>`;
+
+  h+=`<span class="pl">Label</span><input class="pi" data-prop="label" value="${esc(el.label)}" oninput="updateElement('${eid}',{label:this.value})" style="margin-bottom:8px">`;
+
+  if(el.type==='text'){
+    h+=`<span class="pl">Content</span><textarea class="pi" data-prop="text" rows="3" oninput="updateElement('${eid}',{text:this.value})">${esc(el.text)}</textarea>`;
+    h+=`<span class="pl" style="margin-top:6px">Data Placeholder</span><input class="pi" data-prop="placeholder" value="${esc(el.placeholder)}" placeholder="{{column}}" oninput="updateElement('${eid}',{placeholder:this.value})" style="margin-bottom:6px">`;
+    h+=`<span class="pl">Typography</span><div class="pr"><div style="flex:2"><span class="pl">Font</span><select class="pi" data-prop="fontFamily" onchange="updateElement('${eid}',{fontFamily:this.value})">${fo}</select></div><div style="flex:1"><span class="pl">Size</span><input type="number" class="pi" data-prop="fontSize" value="${el.fontSize}" min="6" max="120" onchange="updateElement('${eid}',{fontSize:+this.value})"></div></div>`;
+    h+=`<div class="pr"><div style="flex:1"><span class="pl">Weight</span><select class="pi" data-prop="fontWeight" onchange="updateElement('${eid}',{fontWeight:this.value})"><option value="normal"${el.fontWeight==='normal'?' selected':''}>Normal</option><option value="600"${el.fontWeight==='600'?' selected':''}>Semi-Bold</option><option value="bold"${el.fontWeight==='bold'?' selected':''}>Bold</option></select></div><div style="flex:1"><span class="pl">Style</span><select class="pi" data-prop="fontStyle" onchange="updateElement('${eid}',{fontStyle:this.value})"><option value="normal"${el.fontStyle==='normal'?' selected':''}>Normal</option><option value="italic"${el.fontStyle==='italic'?' selected':''}>Italic</option></select></div><div style="flex:1"><span class="pl">Align</span><select class="pi" data-prop="align" onchange="updateElement('${eid}',{align:this.value})"><option value="left"${el.align==='left'?' selected':''}>Left</option><option value="center"${el.align==='center'?' selected':''}>Center</option><option value="right"${el.align==='right'?' selected':''}>Right</option></select></div></div>`;
+    h+=`<div class="pr"><div style="flex:1"><span class="pl">Color</span><div class="cw"><input type="color" class="cs" data-prop="color" value="${el.color}" oninput="updateElement('${eid}',{color:this.value})"><input class="pi" data-prop="colorText" value="${el.color}" style="flex:1" oninput="updateElement('${eid}',{color:this.value})"></div></div><div style="width:70px"><span class="pl">Spacing</span><input type="number" class="pi" data-prop="letterSpacing" value="${el.letterSpacing??0}" step="0.5" onchange="updateElement('${eid}',{letterSpacing:+this.value})"></div></div>`;
+  }
+  if(el.type==='image'){
+    h+=`<span class="pl" style="margin-top:6px">Image Source</span><input class="pi" data-prop="src" value="${esc(el.src)}" placeholder="URL or filename" oninput="updateElement('${eid}',{src:this.value})" style="margin-bottom:6px">`;
+    h+=`<span class="pl">Placeholder</span><input class="pi" data-prop="placeholder" value="${esc(el.placeholder)}" placeholder="{{art_image}}" oninput="updateElement('${eid}',{placeholder:this.value})" style="margin-bottom:6px">`;
+    h+=`<span class="pl">Fit</span><select class="pi" data-prop="fit" onchange="updateElement('${eid}',{fit:this.value})" style="margin-bottom:6px"><option value="cover"${(el.fit||'cover')==='cover'?' selected':''}>Cover</option><option value="contain"${el.fit==='contain'?' selected':''}>Contain</option><option value="fill"${el.fit==='fill'?' selected':''}>Stretch</option></select>`;
+  }
+  h+=`<span class="pl" style="margin-top:8px">Appearance</span>`;
+  h+=`<div class="pr"><div style="flex:1"><span class="pl">Background</span><input class="pi" data-prop="bg" value="${esc(el.bg)||'transparent'}" oninput="updateElement('${eid}',{bg:this.value})"></div><div style="width:70px"><span class="pl">Opacity</span><input type="range" min="0" max="1" step="0.05" data-prop="opacity" value="${el.opacity??1}" style="width:100%;margin-top:3px" oninput="updateElement('${eid}',{opacity:+this.value})"></div></div>`;
+  h+=`<div class="pr"><div style="flex:1"><span class="pl">Border</span><div class="cw"><input type="color" class="cs" data-prop="borderColorPick" value="${(el.borderColor&&el.borderColor!=='transparent')?el.borderColor:'#000000'}" oninput="updateElement('${eid}',{borderColor:this.value})"><input class="pi" data-prop="borderColor" value="${el.borderColor||'transparent'}" style="flex:1" oninput="updateElement('${eid}',{borderColor:this.value})"></div></div><div style="width:44px"><span class="pl">W</span><input type="number" class="pi" data-prop="borderWidth" value="${el.borderWidth??0}" min="0" onchange="updateElement('${eid}',{borderWidth:+this.value})"></div><div style="width:44px"><span class="pl">R</span><input type="number" class="pi" data-prop="borderRadius" value="${el.borderRadius??0}" min="0" onchange="updateElement('${eid}',{borderRadius:+this.value})"></div></div>`;
+  h+=`<div class="pr"><div style="width:70px"><span class="pl">Rotation</span><input type="number" class="pi" data-prop="rotation" value="${el.rotation??0}" onchange="updateElement('${eid}',{rotation:+this.value})"></div></div>`;
+
+  // Per-card override section
+  if(el.type==='text' && importedData){
+    h+=`<div style="margin-top:12px;padding-top:10px;border-top:1px solid #333"><span class="pl">Per-Card Override</span>`;
+    h+=`<p style="color:#666;font-size:9px;margin-bottom:6px;line-height:1.3">Edit text for this specific card (Card ${currentRow+1}). Changes are stored in the data.</p>`;
+    const row=getRow();
+    const pKey=el.placeholder?el.placeholder.replace(/\{\{|\}\}/g,'').trim():'';
+    const curVal=pKey&&row?String(row[pKey]??''):'';
+    h+=`<textarea class="pi" rows="3" data-prop="override" oninput="overrideCardData('${esc(pKey)}',this.value)">${esc(curVal)}</textarea>`;
+    // Per-card font size
+    const pcOverrides=perCardOverrides[currentRow]?.[el.label];
+    const pcFontSize=pcOverrides?.fontSize??'';
+    h+=`<div style="margin-top:8px;display:flex;align-items:center;gap:6px"><div style="flex:1"><span class="pl">Font Size (this card only)</span><input type="number" class="pi" data-prop="pcFontSize" value="${pcFontSize}" min="6" max="120" placeholder="${el.fontSize} (default)" onchange="overrideCardFontSize('${esc(el.label)}',this.value)"></div><button class="danger-btn" onclick="clearCardFontSize('${esc(el.label)}');_propsRenderedForId=null;renderProps()" title="Reset to default" style="margin-top:12px">✕</button></div>`;
+    h+=`</div>`;
+  }
+
+  h+=`</div>`;
+  a.innerHTML=h;
+}
+
+// Update prop values in-place without rebuilding (prevents focus loss)
+function updatePropsValues(el) {
+  const a=document.getElementById('props-area');
+  // Only update inputs that are NOT currently focused
+  a.querySelectorAll('[data-prop]').forEach(inp=>{
+    if(document.activeElement===inp) return; // skip focused element
+    const p=inp.dataset.prop;
+    if(p==='x')inp.value=el.x;
+    else if(p==='y')inp.value=el.y;
+    else if(p==='w')inp.value=el.w;
+    else if(p==='h')inp.value=el.h;
+    else if(p==='text')inp.value=el.text||'';
+    else if(p==='placeholder')inp.value=el.placeholder||'';
+    else if(p==='label')inp.value=el.label||'';
+    else if(p==='fontSize')inp.value=el.fontSize;
+    else if(p==='letterSpacing')inp.value=el.letterSpacing??0;
+    else if(p==='opacity')inp.value=el.opacity??1;
+    else if(p==='rotation')inp.value=el.rotation??0;
+    else if(p==='borderWidth')inp.value=el.borderWidth??0;
+    else if(p==='borderRadius')inp.value=el.borderRadius??0;
+  });
+}
+
+// Override a value in the current data row
+function overrideCardData(colName, value) {
+  if(!importedData||!colName) return;
+  importedData[currentRow][colName] = value;
+  renderCard();
+  markDirty();
+}
+
+// Per-card font size overrides
+function overrideCardFontSize(elLabel, value) {
+  if(!perCardOverrides[currentRow]) perCardOverrides[currentRow]={};
+  if(!perCardOverrides[currentRow][elLabel]) perCardOverrides[currentRow][elLabel]={};
+  if(value===''||value===null||value===undefined){
+    delete perCardOverrides[currentRow][elLabel].fontSize;
+  } else {
+    perCardOverrides[currentRow][elLabel].fontSize=+value;
+  }
+  renderCard(); markDirty();
+}
+
+function clearCardFontSize(elLabel) {
+  if(perCardOverrides[currentRow]?.[elLabel]){
+    delete perCardOverrides[currentRow][elLabel].fontSize;
+  }
+  renderCard(); markDirty();
+}
+
+// ============================================================
+// RENDER LAYERS
+// ============================================================
+function renderLayers() {
+  const l=document.getElementById('layers-list'); let h='';
+  for(let i=elements.length-1;i>=0;i--){const el=elements[i];
+    h+=`<div class="layer-item${el.id===selectedId?' sel':''}" onclick="_propsRenderedForId=null;selectedId='${el.id}';renderAll()"><span class="layer-name">${el.label||el.type}</span><div class="layer-actions"><button class="lbtn" onclick="event.stopPropagation();reorderElement(${i},1)">▲</button><button class="lbtn" onclick="event.stopPropagation();reorderElement(${i},-1)">▼</button><button class="lbtn" onclick="event.stopPropagation();duplicateElement('${el.id}')">◎</button><button class="lbtn del" onclick="event.stopPropagation();deleteElement('${el.id}')">✕</button></div></div>`;}
+  l.innerHTML=h;
+}
+
+// ============================================================
+// DATA PANEL
+// ============================================================
+function renderDataPanel() {
+  const p=document.getElementById('data-panel');
+  const ic=Object.keys(imageStore).length;
+  const imgSec=`<div style="margin-top:12px"><span class="section-label">Card Images</span><p style="color:#666;font-size:10px;margin-bottom:6px;line-height:1.4">Upload images matching filenames in your data.</p><div style="display:flex;gap:6px"><button class="secondary-btn" style="font-size:10px;padding:7px" onclick="openImageFolder()">📁 Folder</button><button class="secondary-btn" style="font-size:10px;padding:7px" onclick="openImageFiles()">🖼 Files</button></div>${ic?`<div class="status-pill images" style="margin-top:6px">${new Set(Object.values(imageStore)).size} images loaded <button class="danger-btn" onclick="clearImages()" style="margin-left:auto">Clear</button></div>`:''}</div>`;
+
+  if(!importedData){
+    p.innerHTML=`<span class="section-label">Data Binding</span><p style="color:#666;font-size:10px;margin-bottom:8px;line-height:1.4">Import an Excel/CSV file and bind columns to card elements using <code style="background:#2a2a3e;padding:1px 4px;border-radius:3px;color:#a78bfa;font-size:9px">{{column}}</code></p><button class="primary-btn" onclick="openExcel()">📄 Import Excel / CSV</button><button class="secondary-btn" style="margin-top:6px" onclick="loadSampleData()">Load Sample Data</button>${imgSec}`;
+    return;
+  }
+  const row=importedData[currentRow];
+  const tags=dataColumns.map(c=>`<span class="col-tag" onclick="navigator.clipboard&&navigator.clipboard.writeText('{{${c}}}')" title="Copy {{${c}}}">{{${c}}}</span>`).join('');
+  const fields=dataColumns.map(c=>`<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid #2a2a3a;font-size:10px"><span style="color:#8a8a9a">${c}</span><span style="color:#e0e0e8;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${String(row?.[c]??'')}</span></div>`).join('');
+  p.innerHTML=`<span class="section-label">Data Binding</span><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><span style="color:#a78bfa;font-weight:600;font-size:11px">${importedData.length} cards loaded</span><button class="danger-btn" onclick="clearData()">Clear</button></div><div style="display:flex;align-items:center;gap:5px;margin-bottom:8px"><button class="nav-btn" onclick="navRow(-1)"${currentRow===0?' disabled':''}>&larr;</button><span style="flex:1;text-align:center;color:#e0e0e8;font-size:11px">Card ${currentRow+1} / ${importedData.length}</span><button class="nav-btn" onclick="navRow(1)"${currentRow>=importedData.length-1?' disabled':''}>&rarr;</button></div><button class="secondary-btn" style="font-size:10px;padding:6px;margin-bottom:10px" onclick="if(confirm('Rebuild card layout from columns? This replaces current elements.'))autoBuildFromData()">🔄 Rebuild Card from Columns</button><span class="section-label">Columns (click to copy)</span><div style="margin-bottom:8px">${tags}</div><span class="section-label">Current Row</span><div style="background:#1a1a28;border-radius:6px;padding:5px;max-height:140px;overflow-y:auto">${fields}</div>${imgSec}`;
+}
+
+function loadSampleData(){
+  importedData=[
+    {card_name:"Fire Dragon",description:"A fierce dragon wreathed in flame.",type:"Fire",attack:85,defense:60,mana_cost:5,flavour_text:'"In the ember glow, legends are forged."'},
+    {card_name:"Frost Warden",description:"An ancient guardian of the frozen wastes.",type:"Ice",attack:40,defense:95,mana_cost:4,flavour_text:'"The cold preserves what fire cannot."'},
+    {card_name:"Shadow Thief",description:"Strikes from the darkness. High speed, low defense.",type:"Dark",attack:70,defense:30,mana_cost:3,flavour_text:'"You never see the blade that finds you."'},
+    {card_name:"Forest Spirit",description:"A gentle spirit of the woods. Heals allies each turn.",type:"Nature",attack:25,defense:70,mana_cost:2,flavour_text:'"Where roots run deep, life endures."'},
+    {card_name:"Storm Titan",description:"Commands lightning and thunder.",type:"Lightning",attack:90,defense:55,mana_cost:7,flavour_text:'"The sky itself bows before the Titan."'},
+  ];
+  dataColumns=Object.keys(importedData[0]); currentRow=0; renderDataPanel(); renderCard(); updateStatusIndicators(); markDirty();
+}
+function clearData(){importedData=null;dataColumns=[];currentRow=0;renderDataPanel();renderCard();updateStatusIndicators();markDirty();}
+function navRow(d){currentRow=Math.max(0,Math.min(importedData.length-1,currentRow+d));_propsRenderedForId=null;renderDataPanel();renderCard();renderProps();}
+
+// ============================================================
+// FILE OPERATIONS (via Electron API)
+// ============================================================
+async function openExcel(){
+  const result=await window.api.openExcel();
+  if(!result)return;
+  if(result.error){toast(result.error,'error');return;}
+  // Trim all string values — remove leading/trailing whitespace including newlines
+  importedData=result.data.map(row=>{
+    const cleaned={};
+    for(const k in row) cleaned[k]=typeof row[k]==='string'?row[k].replace(/^[\s\n\r]+|[\s\n\r]+$/g,''):row[k];
+    return cleaned;
+  });
+  dataColumns=Object.keys(importedData[0]);
+  currentRow=0;
+  switchTab('data'); renderDataPanel(); updateStatusIndicators(); markDirty();
+  // If canvas is empty, auto-build; otherwise ask
+  if(elements.length===0){
+    autoBuildFromData();
+  } else {
+    if(confirm('Build card layout from Excel columns? This will replace current elements.')){
+      autoBuildFromData();
+    } else {
+      renderCard();
+    }
+  }
+}
+
+function autoBuildFromData(){
+  elements=[];selectedId=null;_propsRenderedForId=null;
+
+  // --- Classify columns ---
+  const imgExts=/\.(png|jpg|jpeg|gif|webp|svg|bmp)$/i;
+  const imageColumns=[], textColumns=[];
+  dataColumns.forEach(col=>{
+    const sampleSize=Math.min(5,importedData.length);
+    let imgLikeCount=0;
+    for(let i=0;i<sampleSize;i++){
+      const v=String(importedData[i][col]||'').trim();
+      if(imgExts.test(v)) imgLikeCount++;
+    }
+    if(imgLikeCount >= sampleSize*0.5 && imgLikeCount>0) imageColumns.push(col);
+    else textColumns.push(col);
+  });
+
+  // --- Detect special columns by name patterns ---
+  // Search across ALL columns (both image and text) since nation/type may contain image filenames
+  const lc=col=>col.toLowerCase().replace(/[_\- ]/g,'');
+  const allCols=[...imageColumns,...textColumns];
+  const find=(arr,patterns)=>arr.find(c=>patterns.some(p=>lc(c).includes(p)));
+  const findAll=(arr,patterns)=>arr.filter(c=>patterns.some(p=>lc(c).includes(p)));
+
+  const titleCol=find(textColumns,['cardname','name','title','card_name']);
+  const typeCol=find(allCols,['type','class','element','category']);
+  const nationCol=find(allCols,['nation','faction','tribe','clan','set','kingdom','realm','team','group']);
+  const attackCol=find(textColumns,['attack','atk','power','str','strength','damage']);
+  const hpCol=find(textColumns,['hp','health','hitpoints','life','def','defense','defence','toughness']);
+  const abilityCol=find(textColumns,['ability','abilitydetail','abilitytext','effect','skill','description','desc','text','detail']);
+  const flavourCol=find(textColumns,['flavour','flavourtext','flavor','flavortext','lore','quote']);
+  const manaCostCol=find(textColumns,['mana','manacost','cost','energy','mp']);
+
+  // Gather the "used" special columns
+  const specialCols=new Set([titleCol,typeCol,nationCol,attackCol,hpCol,abilityCol,flavourCol,manaCostCol].filter(Boolean));
+
+  // Filter nation/type out of main imageColumns so they don't get placed as large art
+  const artImageColumns=imageColumns.filter(c=>!specialCols.has(c));
+
+  // Any remaining text columns not matched
+  const remainingText=textColumns.filter(c=>!specialCols.has(c));
+
+  // Any remaining text that looks like short stats (numeric, <6 chars across samples)
+  const extraStats=[];
+  const extraText=[];
+  remainingText.forEach(col=>{
+    const sampleSize=Math.min(5,importedData.length);
+    let numericCount=0, shortCount=0;
+    for(let i=0;i<sampleSize;i++){
+      const v=String(importedData[i][col]||'').trim();
+      if(v.length<8) shortCount++;
+      if(/^\+?\d+$/.test(v)) numericCount++;
+    }
+    if(numericCount>=sampleSize*0.5) extraStats.push(col);
+    else extraText.push(col);
+  });
+
+  // --- Layout constants ---
+  const pad=8, sidePad=20, innerW=CARD_W-sidePad*2;
+  let y=12;
+
+  // 0) Background
+  elements.push({id:uid(),label:'Card Background',type:'shape',x:0,y:0,w:CARD_W,h:CARD_H,bg:'linear-gradient(170deg,#f5f0e8 0%,#e8ddd0 100%)',borderColor:'#b8a88a',borderWidth:3,opacity:1,rotation:0,borderRadius:12,zIndex:0});
+
+  // 1) Title (large, centered)
+  if(titleCol){
+    elements.push({id:uid(),label:titleCol,type:'text',text:titleCol,x:sidePad,y:y,w:innerW,h:38,fontSize:24,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#1a1a2e',align:'center',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{'+titleCol+'}}',borderRadius:0,letterSpacing:0,zIndex:elements.length});
+    y+=38+pad;
+  }
+
+  // 2) Small metadata row: nation (image, left) and type (image, right), mana cost (far right)
+  const metaIconSize=32;
+  const metaY=y;
+  if(nationCol){
+    elements.push({id:uid(),label:nationCol,type:'image',x:sidePad,y:metaY,w:metaIconSize,h:metaIconSize,src:'',placeholder:'{{'+nationCol+'}}',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,fit:'contain',borderRadius:4,zIndex:elements.length});
+  }
+  if(typeCol){
+    elements.push({id:uid(),label:typeCol,type:'image',x:sidePad+metaIconSize+pad,y:metaY,w:metaIconSize,h:metaIconSize,src:'',placeholder:'{{'+typeCol+'}}',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,fit:'contain',borderRadius:4,zIndex:elements.length});
+  }
+  if(manaCostCol){
+    elements.push({id:uid(),label:manaCostCol,type:'text',text:manaCostCol,x:CARD_W-sidePad-36,y:metaY,w:36,h:metaIconSize,fontSize:16,fontFamily:'Cinzel',fontWeight:'bold',fontStyle:'normal',color:'#fff',align:'center',bg:'#8e44ad',borderColor:'#6c3483',borderWidth:2,opacity:1,rotation:0,placeholder:'{{'+manaCostCol+'}}',borderRadius:12,letterSpacing:0,zIndex:elements.length});
+  }
+  if(nationCol||typeCol||manaCostCol) y+=metaIconSize+pad;
+
+  // 3) Main image(s) - give the biggest space
+  // Calculate remaining space and give image ~50-55% of card height
+  const bottomReserve=130; // space for ability, flavour, stats
+  artImageColumns.forEach(col=>{
+    const imgH=Math.min(260, Math.max(180, CARD_H-y-bottomReserve));
+    elements.push({id:uid(),label:col,type:'image',x:sidePad,y:y,w:innerW,h:imgH,src:'',placeholder:'{{'+col+'}}',bg:'#e0ddd5',borderColor:'#c0b8a8',borderWidth:1,opacity:1,rotation:0,fit:'cover',borderRadius:6,zIndex:elements.length});
+    y+=imgH+pad;
+  });
+
+  // 4) Ability / description text
+  if(abilityCol){
+    const abilH=Math.min(70, CARD_H-y-80);
+    if(abilH>20){
+      elements.push({id:uid(),label:abilityCol,type:'text',text:abilityCol,x:sidePad,y:y,w:innerW,h:abilH,fontSize:11,fontFamily:'EB Garamond',fontWeight:'normal',fontStyle:'normal',color:'#2d2d44',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{'+abilityCol+'}}',borderRadius:0,letterSpacing:0,zIndex:elements.length});
+      y+=abilH+pad;
+    }
+  }
+
+  // 5) Flavour text
+  if(flavourCol){
+    const flavH=Math.min(46, CARD_H-y-50);
+    if(flavH>20){
+      elements.push({id:uid(),label:flavourCol,type:'text',text:flavourCol,x:sidePad,y:y,w:innerW,h:flavH,fontSize:11,fontFamily:'Cormorant Garamond',fontWeight:'normal',fontStyle:'italic',color:'#6b5b73',align:'center',bg:'rgba(245,240,248,0.7)',borderColor:'#c9b8d4',borderWidth:1,opacity:1,rotation:0,placeholder:'{{'+flavourCol+'}}',borderRadius:4,letterSpacing:0,zIndex:elements.length});
+      y+=flavH+pad;
+    }
+  }
+
+  // 6) Any extra long text columns (not stats)
+  extraText.forEach(col=>{
+    const remaining=CARD_H-y-44;
+    if(remaining<24) return;
+    const h=Math.min(40,remaining);
+    elements.push({id:uid(),label:col,type:'text',text:col,x:sidePad,y:y,w:innerW,h:h,fontSize:11,fontFamily:'EB Garamond',fontWeight:'normal',fontStyle:'normal',color:'#2d2d44',align:'left',bg:'transparent',borderColor:'transparent',borderWidth:0,opacity:1,rotation:0,placeholder:'{{'+col+'}}',borderRadius:0,letterSpacing:0,zIndex:elements.length});
+    y+=h+pad;
+  });
+
+  // 7) Stats row at bottom: Attack (left), HP (right), plus any extra stats
+  const statsY=CARD_H-42;
+  const statW=60, statH=32;
+  if(attackCol){
+    elements.push({id:uid(),label:attackCol,type:'text',text:attackCol,x:sidePad,y:statsY,w:statW,h:statH,fontSize:22,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#c0392b',align:'center',bg:'rgba(192,57,43,0.08)',borderColor:'#c0392b',borderWidth:1,opacity:1,rotation:0,placeholder:'{{'+attackCol+'}}',borderRadius:4,letterSpacing:0,zIndex:elements.length});
+  }
+  if(hpCol){
+    elements.push({id:uid(),label:hpCol,type:'text',text:hpCol,x:CARD_W-sidePad-statW,y:statsY,w:statW,h:statH,fontSize:22,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#2980b9',align:'center',bg:'rgba(41,128,185,0.08)',borderColor:'#2980b9',borderWidth:1,opacity:1,rotation:0,placeholder:'{{'+hpCol+'}}',borderRadius:4,letterSpacing:0,zIndex:elements.length});
+  }
+
+  // Extra numeric stats spread between attack and HP
+  if(extraStats.length>0){
+    const availW=innerW-statW*2-pad*2;
+    const eachW=Math.min(60,Math.floor(availW/extraStats.length)-4);
+    const startX=sidePad+statW+pad+Math.floor((availW-eachW*extraStats.length)/2);
+    extraStats.forEach((col,i)=>{
+      elements.push({id:uid(),label:col,type:'text',text:col,x:startX+i*(eachW+4),y:statsY,w:eachW,h:statH,fontSize:16,fontFamily:'Outfit',fontWeight:'bold',fontStyle:'normal',color:'#27ae60',align:'center',bg:'rgba(39,174,96,0.08)',borderColor:'#27ae60',borderWidth:1,opacity:1,rotation:0,placeholder:'{{'+col+'}}',borderRadius:4,letterSpacing:0,zIndex:elements.length});
+    });
+  }
+
+  // Update z-indices
+  elements.forEach((e,i)=>e.zIndex=i);
+  pushHistory();renderAll();
+}
+async function openImageFolder(){
+  const files=await window.api.openImageFolder();
+  if(!files||!files.length)return;
+  await loadImageFilesFromPaths(files);
+}
+
+async function openImageFiles(){
+  const files=await window.api.openImages();
+  if(!files||!files.length)return;
+  await loadImageFilesFromPaths(files);
+}
+
+async function loadImageFilesFromPaths(files){
+  imageStore={};
+  for(const f of files){
+    const dataUrl=await window.api.readImage(f.path);
+    if(!dataUrl)continue;
+    const name=f.name;
+    const noExt=name.replace(/\.[^.]+$/,'');
+    imageStore[name]=dataUrl;
+    imageStore[name.toLowerCase()]=dataUrl;
+    imageStore[noExt]=dataUrl;
+    imageStore[noExt.toLowerCase()]=dataUrl;
+    if(f.relative){imageStore[f.relative]=dataUrl;imageStore[f.relative.toLowerCase()]=dataUrl;}
+  }
+  renderDataPanel(); renderCard(); updateStatusIndicators();
+}
+
+function clearImages(){imageStore={};renderDataPanel();renderCard();updateStatusIndicators();}
+
+// XLSX is now handled in the main process
+
+// ============================================================
+// ELEMENT LIBRARY
+// ============================================================
+async function initLibrary(){
+  elementLibrary=await window.api.loadLibrary()||[];
+  renderLibrary();
+}
+
+function renderLibrary(){
+  const l=document.getElementById('library-list');
+  if(!elementLibrary.length){l.innerHTML='<p style="color:#555;font-size:10px;text-align:center;margin-top:16px">No saved elements yet.</p>';return;}
+  let h='';
+  elementLibrary.forEach((item,i)=>{
+    const dot=item.type==='text'?'#6c5ce7':item.type==='image'?'#e17055':'#00b894';
+    h+=`<div class="el-btn" onclick="addElement({type:'${item.type}',label:'${item.label.replace(/'/g,"\\'")}',d:elementLibrary[${i}].d})"><span class="el-dot" style="background:${dot}"></span>${item.label}<span class="el-type">${item.type}</span><button class="lbtn del" onclick="event.stopPropagation();removeFromLibrary(${i})" style="margin-left:4px" title="Remove">✕</button></div>`;
+  });
+  l.innerHTML=h;
+}
+
+async function saveToLibrary(){
+  const el=elements.find(e=>e.id===selectedId);
+  if(!el)return;
+  const name=prompt('Name for this library element:',el.label||el.type);
+  if(!name)return;
+  const {id,zIndex,...rest}=clone(el);
+  elementLibrary.push({type:el.type,label:name,d:rest});
+  await window.api.saveLibrary(elementLibrary);
+  renderLibrary();
+}
+
+async function removeFromLibrary(i){
+  elementLibrary.splice(i,1);
+  await window.api.saveLibrary(elementLibrary);
+  renderLibrary();
+}
+
+// ============================================================
+// PROJECT SAVE / LOAD
+// ============================================================
+function getProjectData(){
+  return {version:2,elements:clone(elements),importedData:importedData?clone(importedData):null,dataColumns:clone(dataColumns),currentRow,cardW:CARD_W,cardH:CARD_H,perCardOverrides:clone(perCardOverrides)};
+}
+
+function applyProjectData(d){
+  elements=d.elements||[];selectedId=null;
+  importedData=d.importedData||null;dataColumns=d.dataColumns||[];currentRow=d.currentRow||0;
+  perCardOverrides=d.perCardOverrides||{};
+  _uid=Math.max(...elements.map(e=>parseInt(e.id.replace('el_',''))||0),0)+1;
+  pushHistory();renderAll();renderDataPanel();updateStatusIndicators();
+}
+
+async function saveProject(){
+  if(projectPath){
+    const ok=await window.api.quickSave(projectPath,getProjectData());
+    if(ok)markClean();
+  } else { await saveProjectAs(); }
+}
+
+async function saveProjectAs(){
+  const path=await window.api.saveProject(getProjectData());
+  if(path){projectPath=path;document.getElementById('project-name').textContent=path.split(/[/\\]/).pop();markClean();}
+}
+
+async function loadProject(){
+  const result=await window.api.loadProject();
+  if(!result)return;
+  projectPath=result.path;
+  document.getElementById('project-name').textContent=result.path.split(/[/\\]/).pop();
+  applyProjectData(result.data);markClean();
+  // Check for missing images after a short delay
+  setTimeout(()=>{
+    const missing=getMissingImages();
+    if(missing.length>0) showRelinkModal(missing);
+  },300);
+}
+
+function newProject(){
+  if(isDirty&&!confirm('Discard unsaved changes?'))return;
+  elements=[];selectedId=null;history=[];histIdx=-1;importedData=null;dataColumns=[];currentRow=0;imageStore={};projectPath=null;perCardOverrides={};
+  document.getElementById('project-name').textContent='Untitled Project';markClean();pushHistory();renderAll();renderDataPanel();updateStatusIndicators();
+}
+
+// ============================================================
+// BATCH EXPORT
+// ============================================================
+let previewPageIdx=0;
+
+function showExportModal(){
+  const m=document.getElementById('export-modal');m.classList.add('show');
+  document.getElementById('export-progress').style.display='none';
+  document.getElementById('export-done').style.display='none';
+  document.getElementById('export-start-btn').disabled=false;
+  previewPageIdx=0;
+  updateExportPreview();
+}
+function closeExportModal(){document.getElementById('export-modal').classList.remove('show');}
+
+function setPageSize(w,h){document.getElementById('page-w-mm').value=w;document.getElementById('page-h-mm').value=h;updateExportPreview();}
+function setCardSize(w,h){document.getElementById('card-w-mm').value=w;document.getElementById('card-h-mm').value=h;updateExportPreview();}
+
+function getSheetLayout(){
+  const pageW=+document.getElementById('page-w-mm').value||210;
+  const pageH=+document.getElementById('page-h-mm').value||297;
+  const cardW=+document.getElementById('card-w-mm').value||63;
+  const cardH=+document.getElementById('card-h-mm').value||88;
+  const gap=+document.getElementById('card-gap-mm').value||2;
+  const cols=Math.floor((pageW+gap)/(cardW+gap))||1;
+  const rows=Math.floor((pageH+gap)/(cardH+gap))||1;
+  const perPage=cols*rows;
+  const total=importedData?importedData.length:1;
+  const pages=Math.ceil(total/perPage);
+  // Margins to center the grid on the page
+  const marginX=(pageW-(cols*cardW+(cols-1)*gap))/2;
+  const marginY=(pageH-(rows*cardH+(rows-1)*gap))/2;
+  return {pageW,pageH,cardW,cardH,gap,cols,rows,perPage,total,pages,marginX,marginY};
+}
+
+function previewPage(dir){
+  const layout=getSheetLayout();
+  previewPageIdx=Math.max(0,Math.min(layout.pages-1,previewPageIdx+dir));
+  updateExportPreview();
+}
+
+function updateExportPreview(){
+  const mode=document.getElementById('export-mode').value;
+  const sheetOpts=document.getElementById('sheet-options');
+  const previewWrap=document.getElementById('export-preview-wrap');
+  const sheetNav=document.getElementById('sheet-nav');
+
+  if(mode==='individual'){
+    sheetOpts.style.display='none';
+    sheetNav.style.display='none';
+    const total=importedData?importedData.length:1;
+    document.getElementById('export-preview').innerHTML=`<div style="padding:20px;text-align:center;color:#666;font-size:11px">${total} individual card image${total>1?'s':''} will be exported.</div>`;
+    return;
+  }
+
+  sheetOpts.style.display='block';
+  sheetNav.style.display='flex';
+
+  const L=getSheetLayout();
+  const info=document.getElementById('sheet-info');
+  info.innerHTML=`${L.cols}×${L.rows} = <b>${L.perPage} cards/page</b>, ${L.pages} page${L.pages>1?'s':''} total`;
+
+  // Render preview
+  const previewEl=document.getElementById('export-preview');
+  const maxPrevW=280, maxPrevH=360;
+  const prevScale=Math.min(maxPrevW/L.pageW, maxPrevH/L.pageH);
+  const pw=Math.round(L.pageW*prevScale), ph=Math.round(L.pageH*prevScale);
+  previewEl.style.width=pw+'px';
+  previewEl.style.height=ph+'px';
+
+  let html='';
+  const startIdx=previewPageIdx*L.perPage;
+  const total=L.total;
+  for(let r=0;r<L.rows;r++){
+    for(let c=0;c<L.cols;c++){
+      const idx=startIdx+r*L.cols+c;
+      const x=L.marginX+c*(L.cardW+L.gap);
+      const y=L.marginY+r*(L.cardH+L.gap);
+      const sx=Math.round(x*prevScale), sy=Math.round(y*prevScale);
+      const sw=Math.round(L.cardW*prevScale), sh=Math.round(L.cardH*prevScale);
+      if(idx<total){
+        const row=importedData?importedData[idx]:null;
+        const name=row?.Name||row?.card_name||row?.name||('Card '+(idx+1));
+        const shortName=name.length>12?name.slice(0,11)+'…':name;
+        html+=`<div style="position:absolute;left:${sx}px;top:${sy}px;width:${sw}px;height:${sh}px;background:#e8e0d8;border:1px solid #c0b8a8;border-radius:2px;display:flex;align-items:center;justify-content:center;overflow:hidden"><span style="font-size:${Math.max(6,Math.round(7*prevScale))}px;color:#555;text-align:center;padding:2px;word-break:break-all;line-height:1.1">${shortName}</span></div>`;
+      } else {
+        html+=`<div style="position:absolute;left:${sx}px;top:${sy}px;width:${sw}px;height:${sh}px;border:1px dashed #3a3a4a;border-radius:2px"></div>`;
+      }
+    }
+  }
+  previewEl.innerHTML=html;
+
+  // Page nav
+  document.getElementById('page-indicator').textContent=`Page ${previewPageIdx+1} / ${L.pages}`;
+  document.getElementById('prev-page-btn').disabled=previewPageIdx<=0;
+  document.getElementById('next-page-btn').disabled=previewPageIdx>=L.pages-1;
+}
+
+async function ensureHtml2Canvas(){
+  let h2c=window.html2canvas;
+  if(!h2c){
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    document.head.appendChild(s);
+    await new Promise(r=>{s.onload=r;s.onerror=()=>{toast('Failed to load export library.','error');r();}});
+    h2c=window.html2canvas;
+  }
+  return h2c;
+}
+
+async function renderCardToCanvas(cardIdx, scl){
+  const h2c=window.html2canvas;
+  if(!h2c) return null;
+  const prevRow=currentRow;
+  const prevSel=selectedId;
+  selectedId=null;
+  currentRow=cardIdx;
+  renderCard();
+  await new Promise(r=>setTimeout(r,60));
+  const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false});
+  currentRow=prevRow;selectedId=prevSel;
+  return canvas;
+}
+
+async function startBatchExport(){
+  const folder=await window.api.selectExportFolder();
+  if(!folder)return;
+  const fmt=document.getElementById('export-format').value;
+  const scl=+document.getElementById('export-scale').value;
+  const mode=document.getElementById('export-mode').value;
+  const total=importedData?importedData.length:1;
+  const progEl=document.getElementById('export-progress');
+  const progText=document.getElementById('export-progress-text');
+  const progFill=document.getElementById('export-fill');
+  const doneEl=document.getElementById('export-done');
+  document.getElementById('export-start-btn').disabled=true;
+  progEl.style.display='block';doneEl.style.display='none';
+
+  const h2c=await ensureHtml2Canvas();
+  if(!h2c){document.getElementById('export-start-btn').disabled=false;return;}
+
+  const prevSel=selectedId;selectedId=null;
+  const prevRow=currentRow;
+
+  if(mode==='individual'){
+    // Individual export (original behavior)
+    let exported=0;
+    for(let i=0;i<total;i++){
+      if(importedData)currentRow=i;
+      renderCard();
+      await new Promise(r=>setTimeout(r,80));
+      const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false});
+      const dataUrl=canvas.toDataURL(fmt==='jpg'?'image/jpeg':'image/png',0.95);
+      const row=importedData?importedData[i]:null;
+      const name=row?.card_name||row?.name||row?.Name||row?.card_Name||('card_'+(i+1));
+      const safeName=name.replace(/[^a-zA-Z0-9_\- ]/g,'').replace(/\s+/g,'_');
+      await window.api.saveImage(folder,`${safeName}.${fmt}`,dataUrl);
+      exported++;
+      progText.textContent=`Exporting card ${exported} / ${total}...`;
+      progFill.style.width=((exported/total)*100)+'%';
+    }
+    currentRow=prevRow;selectedId=prevSel;renderAll();
+    progEl.style.display='none';
+    doneEl.style.display='block';
+    doneEl.innerHTML=`✅ Exported ${exported} cards to folder. <button class="secondary-btn" style="width:auto;padding:4px 12px;font-size:10px;margin-top:4px" onclick="window.api.openFolder('${folder.replace(/\\/g,'\\\\')}')">Open Folder</button>`;
+  } else {
+    // Sheet export
+    const L=getSheetLayout();
+    const useCropMarks=document.getElementById('crop-marks-cb')?.checked??false;
+    const useBleed=document.getElementById('bleed-cb')?.checked??false;
+    const bleedMm=useBleed?3:0;
+    // DPI: convert mm to pixels at 300 DPI
+    const DPI=300;
+    const mmToPx=v=>Math.round(v*DPI/25.4);
+    const pagePxW=mmToPx(L.pageW);
+    const pagePxH=mmToPx(L.pageH);
+    const cardPxW=mmToPx(L.cardW);
+    const cardPxH=mmToPx(L.cardH);
+    const bleedPx=mmToPx(bleedMm);
+    const gapPx=mmToPx(L.gap);
+    const mxPx=mmToPx(L.marginX);
+    const myPx=mmToPx(L.marginY);
+    const cropMarkLen=mmToPx(5); // 5mm crop marks
+
+    // Calculate the scale needed: render card at size that fills cardPxW x cardPxH (plus bleed)
+    // Card canvas is CARD_W x CARD_H pixels. We need (cardPxW+2*bleedPx) x (cardPxH+2*bleedPx) pixels output.
+    const renderW=cardPxW+2*bleedPx;
+    const renderH=cardPxH+2*bleedPx;
+    const cardRenderScale=Math.max(renderW/CARD_W, renderH/CARD_H);
+
+    let exported=0;
+    for(let pg=0;pg<L.pages;pg++){
+      progText.textContent=`Exporting page ${pg+1} / ${L.pages}...`;
+      progFill.style.width=((pg/L.pages)*100)+'%';
+
+      // Create page canvas
+      const pageCanvas=document.createElement('canvas');
+      pageCanvas.width=pagePxW;
+      pageCanvas.height=pagePxH;
+      const ctx=pageCanvas.getContext('2d');
+      ctx.fillStyle='#ffffff';
+      ctx.fillRect(0,0,pagePxW,pagePxH);
+
+      for(let r=0;r<L.rows;r++){
+        for(let c=0;c<L.cols;c++){
+          const idx=pg*L.perPage+r*L.cols+c;
+          if(idx>=total) break;
+
+          currentRow=idx;
+          renderCard();
+          await new Promise(r=>setTimeout(r,60));
+
+          const cardCanvas=await h2c(document.getElementById('card-canvas'),{scale:cardRenderScale,useCORS:true,backgroundColor:null,logging:false});
+
+          const dx=mxPx+c*(cardPxW+gapPx)-bleedPx;
+          const dy=myPx+r*(cardPxH+gapPx)-bleedPx;
+          ctx.drawImage(cardCanvas,0,0,cardCanvas.width,cardCanvas.height,dx,dy,renderW,renderH);
+          
+          // Draw crop marks for this card
+          if(useCropMarks){
+            const cx=mxPx+c*(cardPxW+gapPx);
+            const cy=myPx+r*(cardPxH+gapPx);
+            drawCropMarks(ctx,cx,cy,cardPxW,cardPxH,cropMarkLen,Math.max(2,mmToPx(0.3)));
+          }
+        }
+      }
+
+      const dataUrl=pageCanvas.toDataURL(fmt==='jpg'?'image/jpeg':'image/png',0.95);
+      await window.api.saveImage(folder,`sheet_${String(pg+1).padStart(3,'0')}.${fmt}`,dataUrl);
+      exported++;
+    }
+
+    currentRow=prevRow;selectedId=prevSel;renderAll();
+    progEl.style.display='none';
+    doneEl.style.display='block';
+    doneEl.innerHTML=`✅ Exported ${exported} page${exported>1?'s':''} (${total} cards) to folder. <button class="secondary-btn" style="width:auto;padding:4px 12px;font-size:10px;margin-top:4px" onclick="window.api.openFolder('${folder.replace(/\\/g,'\\\\')}')">Open Folder</button>`;
+  }
+}
+
+// ============================================================
+// STATUS INDICATORS
+// ============================================================
+function updateStatusIndicators(){
+  const el=document.getElementById('status-indicators');let h='';
+  if(importedData)h+=`<div class="status-pill data">📊 ${importedData.length} cards loaded</div>`;
+  const ic=new Set(Object.values(imageStore)).size;
+  if(ic)h+=`<div class="status-pill images">🖼 ${ic} images</div>`;
+  el.innerHTML=h;
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.toggle('active',c.id==='tab-'+t));
+  if(t==='data')renderDataPanel();
+  if(t==='library')renderLibrary();
+  if(t==='editor')renderEditor();
+}
+
+// ============================================================
+// DATA EDITOR (spreadsheet grid)
+// ============================================================
+function ensureData(){
+  if(!importedData){
+    importedData=[{}];
+    dataColumns=[];
+    currentRow=0;
+  }
+}
+
+function renderEditor(){
+  const p=document.getElementById('editor-panel');
+  ensureData();
+
+  let h=`<div class="editor-toolbar">`;
+  h+=`<button onclick="editorAddRow()">+ Row</button>`;
+  h+=`<button onclick="editorAddColumn()">+ Column</button>`;
+  h+=`<button onclick="editorRenameColumn()">Rename Col</button>`;
+  h+=`<button class="danger" onclick="editorDeleteRow()">− Row</button>`;
+  h+=`<button class="danger" onclick="editorDeleteColumn()">− Column</button>`;
+  h+=`<span style="margin-left:auto;color:#8a8a9a;font-size:10px;padding:3px 0">${importedData.length} rows × ${dataColumns.length} cols</span>`;
+  h+=`</div>`;
+
+  h+=`<div class="editor-grid-wrap"><table class="editor-grid"><thead><tr><th class="row-num">#</th>`;
+  dataColumns.forEach(c=>{ h+=`<th title="${c}">${c}</th>`; });
+  h+=`</tr></thead><tbody>`;
+
+  importedData.forEach((row,ri)=>{
+    h+=`<tr><td class="row-num${ri===currentRow?' active':''}" onclick="editorGoToRow(${ri})">${ri+1}</td>`;
+    dataColumns.forEach(col=>{
+      const val=(row[col]!=null)?String(row[col]):'';
+      const esc=val.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      h+=`<td><input class="editor-cell" value="${esc}" data-row="${ri}" data-col="${col}" onfocus="editorGoToRow(${ri})" oninput="editorCellChanged(this,${ri},'${col.replace(/'/g,"\\'")}')"></td>`;
+    });
+    h+=`</tr>`;
+  });
+
+  h+=`</tbody></table></div>`;
+  p.innerHTML=h;
+}
+
+function editorCellChanged(inp, rowIdx, colName){
+  if(!importedData[rowIdx]) return;
+  importedData[rowIdx][colName]=inp.value;
+  renderCard();
+  renderDataPanel();
+  markDirty();
+}
+
+function editorGoToRow(ri){
+  currentRow=ri;
+  _propsRenderedForId=null;
+  renderCard();renderProps();renderDataPanel();
+  // Update active row highlight without full re-render
+  document.querySelectorAll('.editor-grid td.row-num').forEach((td,i)=>{
+    td.classList.toggle('active',i===ri);
+  });
+}
+
+function editorAddRow(){
+  ensureData();
+  const newRow={};
+  dataColumns.forEach(c=>newRow[c]='');
+  importedData.push(newRow);
+  currentRow=importedData.length-1;
+  renderEditor();renderDataPanel();renderCard();updateStatusIndicators();markDirty();
+}
+
+function editorDeleteRow(){
+  if(!importedData||importedData.length<=1){toast('Cannot delete the last row.','warning');return;}
+  if(!confirm(`Delete row ${currentRow+1}?`))return;
+  importedData.splice(currentRow,1);
+  if(currentRow>=importedData.length) currentRow=importedData.length-1;
+  renderEditor();renderDataPanel();renderCard();renderProps();updateStatusIndicators();markDirty();
+}
+
+function editorAddColumn(){
+  const name=prompt('New column name:');
+  if(!name||!name.trim())return;
+  const col=name.trim();
+  if(dataColumns.includes(col)){toast('Column already exists.','warning');return;}
+  dataColumns.push(col);
+  importedData.forEach(row=>row[col]='');
+  renderEditor();renderDataPanel();markDirty();
+}
+
+function editorDeleteColumn(){
+  if(!dataColumns.length)return;
+  const col=prompt('Column name to delete:\n\nAvailable: '+dataColumns.join(', '));
+  if(!col||!dataColumns.includes(col.trim()))return;
+  const c=col.trim();
+  if(!confirm(`Delete column "${c}" from all rows?`))return;
+  dataColumns=dataColumns.filter(x=>x!==c);
+  importedData.forEach(row=>delete row[c]);
+  renderEditor();renderDataPanel();renderCard();markDirty();
+}
+
+function editorRenameColumn(){
+  if(!dataColumns.length)return;
+  const old=prompt('Column to rename:\n\nAvailable: '+dataColumns.join(', '));
+  if(!old||!dataColumns.includes(old.trim()))return;
+  const oldName=old.trim();
+  const newName=prompt(`New name for "${oldName}":`);
+  if(!newName||!newName.trim()||newName.trim()===oldName)return;
+  const nn=newName.trim();
+  if(dataColumns.includes(nn)){toast('Column already exists.','warning');return;}
+  dataColumns=dataColumns.map(c=>c===oldName?nn:c);
+  importedData.forEach(row=>{row[nn]=row[oldName];delete row[oldName];});
+  // Update element placeholders that reference old column
+  elements.forEach(el=>{
+    if(el.placeholder==='{{'+oldName+'}}') el.placeholder='{{'+nn+'}}';
+  });
+  renderEditor();renderDataPanel();renderCard();renderAll();markDirty();
+}
+
+// ============================================================
+// ADD ELEMENT POPOVER
+// ============================================================
+let addElType = 'text';
+
+function toggleAddElementPopover() {
+  const pop = document.getElementById('add-el-popover');
+  pop.classList.toggle('show');
+}
+
+function selectAddType(type) {
+  addElType = type;
+  document.querySelectorAll('.add-el-type-btn').forEach(b => b.classList.toggle('selected', b.dataset.atype === type));
+  document.getElementById('add-el-shape-row').style.display = type === 'shape' ? 'flex' : 'none';
+  // Update default sizes
+  const wInput = document.getElementById('add-el-w');
+  const hInput = document.getElementById('add-el-h');
+  if (type === 'text') { wInput.value = 150; hInput.value = 40; }
+  else if (type === 'image') { wInput.value = 200; hInput.value = 150; }
+  else if (type === 'shape') { wInput.value = 120; hInput.value = 80; }
+}
+
+function addCustomElement() {
+  const label = document.getElementById('add-el-label').value.trim() || 'New Element';
+  const w = Math.max(20, +document.getElementById('add-el-w').value || 100);
+  const h = Math.max(20, +document.getElementById('add-el-h').value || 40);
+  const shape = document.getElementById('add-el-shape').value;
+  
+  // Center the new element on the card
+  const x = Math.round((CARD_W - w) / 2);
+  const y = Math.round((CARD_H - h) / 2);
+  
+  let el;
+  if (addElType === 'text') {
+    el = { id: uid(), label, type: 'text', text: label, x, y, w, h, fontSize: 16, fontFamily: 'Outfit', fontWeight: 'normal', fontStyle: 'normal', color: '#333', align: 'left', bg: 'transparent', borderColor: 'transparent', borderWidth: 0, opacity: 1, rotation: 0, placeholder: '', borderRadius: 0, letterSpacing: 0, zIndex: elements.length };
+  } else if (addElType === 'image') {
+    el = { id: uid(), label, type: 'image', x, y, w, h, src: '', placeholder: '', bg: '#ddd', borderColor: '#aaa', borderWidth: 1, opacity: 1, rotation: 0, fit: 'cover', borderRadius: 4, zIndex: elements.length };
+  } else {
+    // Shape with variants
+    let borderRadius = 4;
+    let elW = w, elH = h;
+    if (shape === 'circle') { borderRadius = Math.max(w, h); elW = Math.max(w, h); elH = elW; }
+    else if (shape === 'rounded') { borderRadius = 12; }
+    else if (shape === 'divider') { elH = 2; borderRadius = 1; }
+    el = { id: uid(), label, type: 'shape', x, y: shape === 'divider' ? y + h / 2 : y, w: elW, h: elH, bg: shape === 'divider' ? '#ccc' : '#3498db', borderColor: shape === 'divider' ? 'transparent' : '#2980b9', borderWidth: shape === 'divider' ? 0 : 1, opacity: 0.9, rotation: 0, borderRadius, zIndex: elements.length };
+  }
+  
+  elements.push(el);
+  selectedId = el.id;
+  pushHistory();
+  markDirty();
+  renderAll();
+  document.getElementById('add-el-popover').classList.remove('show');
+  toast(`Added "${label}" to canvas`, 'success', 2000);
+}
+
+// Close popover when clicking outside
+document.addEventListener('click', (e) => {
+  const pop = document.getElementById('add-el-popover');
+  if (pop && pop.classList.contains('show') && !e.target.closest('.add-el-popover') && !e.target.closest('[onclick*="toggleAddElementPopover"]')) {
+    pop.classList.remove('show');
+  }
+});
+
+// ============================================================
+// CARD TEMPLATES UI
+// ============================================================
+function showTemplateModal() {
+  selectedTemplateId = null;
+  const grid = document.getElementById('template-grid');
+  let h = '';
+  CARD_TEMPLATES.forEach(t => {
+    let preview = '';
+    t.preview.forEach(p => {
+      preview += `<div class="tp-el" style="left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%;background:${p.bg};border-radius:${p.r}px"></div>`;
+    });
+    h += `<div class="template-card" data-tid="${t.id}" onclick="selectTemplate('${t.id}')">
+      <div class="template-preview">${preview}</div>
+      <div>
+        <h4>${t.name}</h4>
+        <p>${t.desc}</p>
+      </div>
+    </div>`;
+  });
+  grid.innerHTML = h;
+  document.getElementById('template-apply-btn').disabled = true;
+  document.getElementById('template-modal').classList.add('show');
+}
+
+function closeTemplateModal() {
+  document.getElementById('template-modal').classList.remove('show');
+}
+
+function selectTemplate(id) {
+  selectedTemplateId = id;
+  document.querySelectorAll('.template-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.tid === id);
+  });
+  document.getElementById('template-apply-btn').disabled = false;
+}
+
+function applySelectedTemplate() {
+  const t = CARD_TEMPLATES.find(t => t.id === selectedTemplateId);
+  if (!t) return;
+  if (elements.length > 0 && !confirm('This will replace your current card layout. Continue?')) return;
+  elements = [];
+  selectedId = null;
+  _propsRenderedForId = null;
+  t.elements.forEach(preset => {
+    elements.push({ id: uid(), label: preset.label, type: preset.type, ...clone(preset.d), zIndex: elements.length });
+  });
+  
+  // Auto-create data columns from template placeholders
+  const placeholderCols = new Set();
+  elements.forEach(el => {
+    const ph = el.placeholder || '';
+    const matches = ph.matchAll(/\{\{([^}]+)\}\}/g);
+    for (const m of matches) {
+      placeholderCols.add(m[1].trim());
+    }
+  });
+  if (placeholderCols.size > 0) {
+    const cols = Array.from(placeholderCols);
+    if (!importedData || dataColumns.length === 0) {
+      dataColumns = cols;
+      const row = {};
+      cols.forEach(c => row[c] = '');
+      importedData = [row];
+      currentRow = 0;
+    }
+  }
+  
+  pushHistory();
+  markDirty();
+  renderAll();
+  renderDataPanel();
+  updateStatusIndicators();
+  closeTemplateModal();
+  toast('Template applied! Edit data in the Editor tab.', 'success');
+}
+
+// ============================================================
+// SNAP TO GRID & ALIGNMENT GUIDES
+// ============================================================
+const SNAP_THRESHOLD = 6; // pixels within which snapping activates
+
+function toggleSnap() {
+  snapEnabled = !snapEnabled;
+  document.getElementById('snap-toggle').classList.toggle('active', snapEnabled);
+}
+
+function toggleGuides() {
+  guidesEnabled = !guidesEnabled;
+  document.getElementById('guides-toggle').classList.toggle('active', guidesEnabled);
+  if (!guidesEnabled) clearGuides();
+}
+
+function clearGuides() {
+  document.getElementById('snap-guides').innerHTML = '';
+}
+
+function snapValue(val, gridSize) {
+  return Math.round(val / gridSize) * gridSize;
+}
+
+function getAlignmentGuides(movingEl) {
+  if (!guidesEnabled) return { guides: [], snappedX: null, snappedY: null };
+  
+  const guides = [];
+  let snappedX = null, snappedY = null;
+  const mx = movingEl.x, my = movingEl.y;
+  const mw = movingEl.w, mh = movingEl.h;
+  const mCx = mx + mw / 2, mCy = my + mh / 2;
+  const mR = mx + mw, mB = my + mh;
+
+  // Card center lines
+  const cardCx = CARD_W / 2, cardCy = CARD_H / 2;
+  
+  // Check card center
+  if (Math.abs(mCx - cardCx) < SNAP_THRESHOLD) {
+    snappedX = cardCx - mw / 2;
+    guides.push({ type: 'vertical', pos: cardCx, center: true });
+  }
+  if (Math.abs(mCy - cardCy) < SNAP_THRESHOLD) {
+    snappedY = cardCy - mh / 2;
+    guides.push({ type: 'horizontal', pos: cardCy, center: true });
+  }
+
+  // Check against other elements
+  elements.forEach(other => {
+    if (other.id === movingEl.id) return;
+    const ox = other.x, oy = other.y;
+    const ow = other.w, oh = other.h;
+    const oCx = ox + ow / 2, oCy = oy + oh / 2;
+    const oR = ox + ow, oB = oy + oh;
+
+    // Left edges
+    if (snappedX === null && Math.abs(mx - ox) < SNAP_THRESHOLD) { snappedX = ox; guides.push({ type: 'vertical', pos: ox }); }
+    // Right edges
+    if (snappedX === null && Math.abs(mR - oR) < SNAP_THRESHOLD) { snappedX = oR - mw; guides.push({ type: 'vertical', pos: oR }); }
+    // Left to right
+    if (snappedX === null && Math.abs(mx - oR) < SNAP_THRESHOLD) { snappedX = oR; guides.push({ type: 'vertical', pos: oR }); }
+    // Right to left
+    if (snappedX === null && Math.abs(mR - ox) < SNAP_THRESHOLD) { snappedX = ox - mw; guides.push({ type: 'vertical', pos: ox }); }
+    // Center X
+    if (snappedX === null && Math.abs(mCx - oCx) < SNAP_THRESHOLD) { snappedX = oCx - mw / 2; guides.push({ type: 'vertical', pos: oCx, center: true }); }
+
+    // Top edges
+    if (snappedY === null && Math.abs(my - oy) < SNAP_THRESHOLD) { snappedY = oy; guides.push({ type: 'horizontal', pos: oy }); }
+    // Bottom edges
+    if (snappedY === null && Math.abs(mB - oB) < SNAP_THRESHOLD) { snappedY = oB - mh; guides.push({ type: 'horizontal', pos: oB }); }
+    // Top to bottom
+    if (snappedY === null && Math.abs(my - oB) < SNAP_THRESHOLD) { snappedY = oB; guides.push({ type: 'horizontal', pos: oB }); }
+    // Bottom to top
+    if (snappedY === null && Math.abs(mB - oy) < SNAP_THRESHOLD) { snappedY = oy - mh; guides.push({ type: 'horizontal', pos: oy }); }
+    // Center Y
+    if (snappedY === null && Math.abs(mCy - oCy) < SNAP_THRESHOLD) { snappedY = oCy - mh / 2; guides.push({ type: 'horizontal', pos: oCy, center: true }); }
+  });
+
+  return { guides, snappedX, snappedY };
+}
+
+function renderGuides(guideList) {
+  const container = document.getElementById('snap-guides');
+  if (!guideList.length) { container.innerHTML = ''; return; }
+  let h = '';
+  guideList.forEach(g => {
+    if (g.type === 'vertical') {
+      h += `<div class="snap-guide vertical${g.center ? ' center' : ''}" style="left:${g.pos}px"></div>`;
+    } else {
+      h += `<div class="snap-guide horizontal${g.center ? ' center' : ''}" style="top:${g.pos}px"></div>`;
+    }
+  });
+  container.innerHTML = h;
+}
+
+// ============================================================
+// IMAGE RELINKING
+// ============================================================
+function getMissingImages() {
+  if (!importedData) return [];
+  const missing = new Set();
+  const imageElements = elements.filter(e => e.type === 'image' && e.placeholder);
+  
+  for (let ri = 0; ri < importedData.length; ri++) {
+    const row = importedData[ri];
+    imageElements.forEach(el => {
+      const raw = resolve(el.placeholder, row);
+      if (raw && raw !== el.placeholder) {
+        const src = resolveImage(raw);
+        if (!src) missing.add(raw);
+      }
+    });
+  }
+  return Array.from(missing);
+}
+
+function checkMissingImages() {
+  const missing = getMissingImages();
+  if (missing.length === 0) {
+    toast('All images resolved successfully!','success');
+    return;
+  }
+  showRelinkModal(missing);
+}
+
+function showRelinkModal(missing) {
+  const list = document.getElementById('relink-list');
+  let h = '';
+  missing.forEach(name => {
+    h += `<div class="relink-item"><span class="missing">✕ ${name}</span></div>`;
+  });
+  list.innerHTML = h;
+  document.getElementById('relink-modal').classList.add('show');
+}
+
+function closeRelinkModal() {
+  document.getElementById('relink-modal').classList.remove('show');
+}
+
+async function relinkImages() {
+  const files = await window.api.openImageFolder();
+  if (!files || !files.length) return;
+  await loadImageFilesFromPaths(files);
+  
+  // Check again
+  const stillMissing = getMissingImages();
+  const list = document.getElementById('relink-list');
+  
+  if (stillMissing.length === 0) {
+    list.innerHTML = '<div style="padding:12px;color:#6fcf6f;text-align:center;font-size:12px">✅ All images found!</div>';
+    setTimeout(closeRelinkModal, 1500);
+  } else {
+    let h = '';
+    // Show what was found
+    const originalMissing = new Set();
+    list.querySelectorAll('.missing').forEach(el => originalMissing.add(el.textContent.replace('✕ ', '')));
+    
+    stillMissing.forEach(name => {
+      h += `<div class="relink-item"><span class="missing">✕ ${name}</span></div>`;
+    });
+    
+    const foundCount = originalMissing.size - stillMissing.length;
+    if (foundCount > 0) {
+      h = `<div style="padding:6px 8px;color:#6fcf6f;font-size:11px;border-bottom:1px solid #2a2a3a">✅ ${foundCount} image(s) relinked successfully</div>` + h;
+    }
+    list.innerHTML = h;
+  }
+}
+
+// ============================================================
+// PRINT EXPORT: BLEED & CROP MARKS
+// ============================================================
+function drawCropMarks(ctx, x, y, w, h, markLen, lineWidth) {
+  ctx.save();
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = lineWidth || 2;
+  const offset = Math.max(2, lineWidth); // gap between card edge and mark start
+  
+  // Top-left corner
+  ctx.beginPath();
+  ctx.moveTo(x - markLen, y); ctx.lineTo(x - offset, y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y - markLen); ctx.lineTo(x, y - offset);
+  ctx.stroke();
+  
+  // Top-right corner
+  ctx.beginPath();
+  ctx.moveTo(x + w + offset, y); ctx.lineTo(x + w + markLen, y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + w, y - markLen); ctx.lineTo(x + w, y - offset);
+  ctx.stroke();
+  
+  // Bottom-left corner
+  ctx.beginPath();
+  ctx.moveTo(x - markLen, y + h); ctx.lineTo(x - offset, y + h);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x, y + h + offset); ctx.lineTo(x, y + h + markLen);
+  ctx.stroke();
+  
+  // Bottom-right corner
+  ctx.beginPath();
+  ctx.moveTo(x + w + offset, y + h); ctx.lineTo(x + w + markLen, y + h);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x + w, y + h + offset); ctx.lineTo(x + w, y + h + markLen);
+  ctx.stroke();
+  
+  ctx.restore();
+}
+
+// ============================================================
+// TOAST NOTIFICATIONS (replaces alert())
+// ============================================================
+function toast(message, type = 'info', duration = 4000) {
+  const container = document.getElementById('toast-container');
+  const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="toast-icon">${icons[type] || ''}</span><span>${message}</span><button class="toast-close" onclick="this.parentElement.remove()">×</button>`;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toastOut .2s ease-in forwards';
+    setTimeout(() => t.remove(), 200);
+  }, duration);
+}
+
+// ============================================================
+// CONTEXT MENU (right-click on elements)
+// ============================================================
+function showContextMenu(e, elId) {
+  e.preventDefault();
+  e.stopPropagation();
+  selectedId = elId;
+  _propsRenderedForId = null;
+  renderAll();
+  
+  const el = elements.find(x => x.id === elId);
+  if (!el) return;
+  
+  const idx = elements.indexOf(el);
+  const menu = document.getElementById('context-menu');
+  
+  let h = '';
+  h += `<div class="ctx-item" onclick="duplicateElement('${elId}');hideContextMenu()">Duplicate<span class="ctx-shortcut">Ctrl+D</span></div>`;
+  h += `<div class="ctx-sep"></div>`;
+  h += `<div class="ctx-item" onclick="bringToFront('${elId}');hideContextMenu()">Bring to Front</div>`;
+  h += `<div class="ctx-item" onclick="sendToBack('${elId}');hideContextMenu()">Send to Back</div>`;
+  h += `<div class="ctx-item" onclick="reorderElement(${idx},1);hideContextMenu()">Move Up<span class="ctx-shortcut">▲</span></div>`;
+  h += `<div class="ctx-item" onclick="reorderElement(${idx},-1);hideContextMenu()">Move Down<span class="ctx-shortcut">▼</span></div>`;
+  h += `<div class="ctx-sep"></div>`;
+  h += `<div class="ctx-item" onclick="centerElementH('${elId}');hideContextMenu()">Center Horizontally</div>`;
+  h += `<div class="ctx-item" onclick="centerElementV('${elId}');hideContextMenu()">Center Vertically</div>`;
+  h += `<div class="ctx-sep"></div>`;
+  h += `<div class="ctx-item danger" onclick="deleteElement('${elId}');hideContextMenu()">Delete<span class="ctx-shortcut">Del</span></div>`;
+  
+  menu.innerHTML = h;
+  menu.style.display = 'block';
+  
+  // Position menu, keeping it on screen
+  const mx = Math.min(e.clientX, window.innerWidth - 200);
+  const my = Math.min(e.clientY, window.innerHeight - 300);
+  menu.style.left = mx + 'px';
+  menu.style.top = my + 'px';
+}
+
+function hideContextMenu() {
+  document.getElementById('context-menu').style.display = 'none';
+}
+
+// Close context menu on click anywhere
+document.addEventListener('click', hideContextMenu);
+document.addEventListener('contextmenu', (e) => {
+  // Only prevent default on canvas elements (allow normal right-click elsewhere)
+  if (!e.target.closest('.card-el')) hideContextMenu();
+});
+
+function bringToFront(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  elements = elements.filter(e => e.id !== id);
+  elements.push(el);
+  elements.forEach((e, i) => e.zIndex = i);
+  pushHistory(); markDirty(); renderAll();
+}
+
+function sendToBack(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  elements = elements.filter(e => e.id !== id);
+  elements.unshift(el);
+  elements.forEach((e, i) => e.zIndex = i);
+  pushHistory(); markDirty(); renderAll();
+}
+
+function centerElementH(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  el.x = Math.round((CARD_W - el.w) / 2);
+  pushHistory(); markDirty(); renderAll();
+}
+
+function centerElementV(id) {
+  const el = elements.find(e => e.id === id);
+  if (!el) return;
+  el.y = Math.round((CARD_H - el.h) / 2);
+  pushHistory(); markDirty(); renderAll();
+}
+
+// ============================================================
+// ZOOM CONTROLS
+// ============================================================
+let manualZoom = false;
+
+function zoomIn() {
+  manualZoom = true;
+  scale = Math.min(3, scale + 0.15);
+  applyZoom();
+}
+
+function zoomOut() {
+  manualZoom = true;
+  scale = Math.max(0.2, scale - 0.15);
+  applyZoom();
+}
+
+function zoomFit() {
+  manualZoom = false;
+  updateScale();
+}
+
+function applyZoom() {
+  document.getElementById('card-wrapper').style.transform = `scale(${scale})`;
+  document.getElementById('zoom-badge').textContent = Math.round(scale * 100) + '%';
+}
+
+// ============================================================
+// WELCOME / ONBOARDING SCREEN
+// ============================================================
+let hasShownWelcome = false;
+
+function showWelcome() {
+  if (hasShownWelcome) return;
+  hasShownWelcome = true;
+  
+  const overlay = document.createElement('div');
+  overlay.className = 'welcome-overlay';
+  overlay.id = 'welcome-overlay';
+  overlay.innerHTML = `
+    <div class="welcome-card">
+      <h1>Welcome to TCG Card Maker</h1>
+      <p class="subtitle">Design trading card game cards with a visual editor, import spreadsheet data, and batch export print-ready images.</p>
+      <div class="welcome-actions">
+        <div class="welcome-action" onclick="closeWelcome();showTemplateModal()">
+          <div class="wa-icon" style="background:linear-gradient(135deg,#6c5ce7,#a78bfa)">🎨</div>
+          <div class="wa-text">
+            <h3>Start with a Template</h3>
+            <p>Choose from 5 pre-designed card layouts and customise from there</p>
+          </div>
+        </div>
+        <div class="welcome-action" onclick="closeWelcome();openExcel()">
+          <div class="wa-icon" style="background:linear-gradient(135deg,#00b894,#55efc4)">📊</div>
+          <div class="wa-text">
+            <h3>Import a Spreadsheet</h3>
+            <p>Load an Excel or CSV file to auto-generate a card layout from your data</p>
+          </div>
+        </div>
+        <div class="welcome-action" onclick="closeWelcome();loadProject()">
+          <div class="wa-icon" style="background:linear-gradient(135deg,#fdcb6e,#e17055)">📂</div>
+          <div class="wa-text">
+            <h3>Open Existing Project</h3>
+            <p>Load a previously saved .tcg project file</p>
+          </div>
+        </div>
+        <div class="welcome-action" onclick="closeWelcome();switchTab('elements')">
+          <div class="wa-icon" style="background:linear-gradient(135deg,#74b9ff,#0984e3)">✏️</div>
+          <div class="wa-text">
+            <h3>Build from Scratch</h3>
+            <p>Start with a blank canvas and add elements manually</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function closeWelcome() {
+  const overlay = document.getElementById('welcome-overlay');
+  if (overlay) overlay.remove();
+}
+
+// ============================================================
+// SIDEBAR RESIZE
+// ============================================================
+(function(){
+  const handle = document.getElementById('sidebar-resize');
+  const sidebar = document.getElementById('sidebar');
+  let resizing = false, startX = 0, startW = 0;
+  
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    resizing = true;
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+  });
+  
+  document.addEventListener('mousemove', e => {
+    if (!resizing) return;
+    const newW = Math.max(220, Math.min(600, startW + (e.clientX - startX)));
+    sidebar.style.width = newW + 'px';
+  });
+  
+  document.addEventListener('mouseup', () => {
+    if (resizing) {
+      resizing = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      if (!manualZoom) updateScale();
+    }
+  });
+})();
+
+// ============================================================
+// SCALING
+// ============================================================
+function updateScale(){
+  if (manualZoom) return;
+  const sidebarW = document.getElementById('sidebar')?.offsetWidth || 272;
+  const aw=window.innerWidth-sidebarW-260-80,ah=window.innerHeight-40-60;
+  scale=Math.min(1.2,aw/CARD_W,ah/CARD_H);
+  applyZoom();
+}
+
+// Scroll to zoom on canvas
+document.getElementById('canvas-area').addEventListener('wheel', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    manualZoom = true;
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    scale = Math.max(0.2, Math.min(3, scale + delta));
+    applyZoom();
+  }
+}, { passive: false });
+
+// ============================================================
+// KEYBOARD
+// ============================================================
+document.addEventListener('keydown',e=>{
+  const inInput = ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName);
+  if((e.metaKey||e.ctrlKey)&&e.key==='z'){e.preventDefault();e.shiftKey?doRedo():doUndo();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();saveProject();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='d'&&selectedId){e.preventDefault();duplicateElement(selectedId);}
+  if((e.key==='Delete'||e.key==='Backspace')&&selectedId&&!inInput){e.preventDefault();deleteElement(selectedId);}
+  if(e.key==='g'&&!inInput){toggleSnap();}
+  if(e.key==='a'&&!e.ctrlKey&&!e.metaKey&&!inInput){toggleGuides();}
+  if((e.key==='='||e.key==='+')&&(e.ctrlKey||e.metaKey)){e.preventDefault();zoomIn();}
+  if(e.key==='-'&&(e.ctrlKey||e.metaKey)){e.preventDefault();zoomOut();}
+  if(e.key==='0'&&(e.ctrlKey||e.metaKey)){e.preventDefault();zoomFit();}
+  if(e.key==='Escape'){hideContextMenu();closeWelcome();}
+});
+
+// ============================================================
+// RENDER ALL
+// ============================================================
+function renderAll(){renderCard();renderLayers();renderProps();}
+
+// ============================================================
+// INIT
+// ============================================================
+function init(){
+  const list=document.getElementById('preset-list');
+  PRESETS.forEach(p=>{
+    const b=document.createElement('button');b.className='el-btn';
+    const dc=p.type==='text'?'#6c5ce7':p.type==='image'?'#e17055':'#00b894';
+    b.innerHTML=`<span class="el-dot" style="background:${dc}"></span>${p.label}<span class="el-type">${p.type}</span>`;
+    b.onclick=()=>addElement(p);list.appendChild(b);
+  });
+  updateScale();window.addEventListener('resize',()=>{if(!manualZoom)updateScale();});
+  pushHistory();renderAll();renderDataPanel();initLibrary();
+  // Show welcome screen on first launch
+  showWelcome();
+}
+init();
+</script>
+</body>
+</html>
