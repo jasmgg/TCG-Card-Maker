@@ -1302,17 +1302,18 @@ async function ensureHtml2Canvas(){
 }
 
 async function renderCardToCanvas(cardIdx, scl){
-  const h2c=window.html2canvas;
-  if(!h2c) return null;
   const prevRow=currentRow;
   const prevSel=selectedId;
   selectedId=null;
   currentRow=cardIdx;
   renderCard();
-  await new Promise(r=>setTimeout(r,60));
-  const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false,onclone:(clonedDoc)=>{clonedDoc.querySelectorAll('.card-el div').forEach(el=>{el.style.textAlign=el.style.textAlign||'left';el.style.wordSpacing='0px';el.style.whiteSpace='normal';});}});
+  await new Promise(r=>setTimeout(r,80));
+  const el=document.getElementById('card-canvas');
+  const r=el.getBoundingClientRect();
+  const rect={x:Math.round(r.left),y:Math.round(r.top),width:Math.round(r.width),height:Math.round(r.height)};
+  const dataUrl=await window.api.captureCard(rect,scl);
   currentRow=prevRow;selectedId=prevSel;
-  return canvas;
+  return dataUrl;
 }
 
 async function startBatchExport(){
@@ -1329,21 +1330,32 @@ async function startBatchExport(){
   document.getElementById('export-start-btn').disabled=true;
   progEl.style.display='block';doneEl.style.display='none';
 
-  const h2c=await ensureHtml2Canvas();
-  if(!h2c){document.getElementById('export-start-btn').disabled=false;return;}
-
   const prevSel=selectedId;selectedId=null;
   const prevRow=currentRow;
 
+  // Hide modal so capturePage can see the card canvas
+  const modal=document.getElementById('export-modal');
+  modal.style.visibility='hidden';
+  await new Promise(r=>setTimeout(r,50));
+
   if(mode==='individual'){
-    // Individual export (original behavior)
     let exported=0;
     for(let i=0;i<total;i++){
       if(importedData)currentRow=i;
       renderCard();
       await new Promise(r=>setTimeout(r,80));
-      const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false,onclone:(clonedDoc)=>{clonedDoc.querySelectorAll('.card-el div').forEach(el=>{el.style.textAlign=el.style.textAlign||'left';el.style.wordSpacing='0px';el.style.whiteSpace='normal';});}});
-      const dataUrl=canvas.toDataURL(fmt==='jpg'?'image/jpeg':'image/png',0.95);
+      const el=document.getElementById('card-canvas');
+      const rect=el.getBoundingClientRect();
+      let dataUrl=await window.api.captureCard({x:Math.round(rect.left),y:Math.round(rect.top),width:Math.round(rect.width),height:Math.round(rect.height)},scl);
+      if(!dataUrl){modal.style.visibility='visible';break;}
+      if(fmt==='jpg'){
+        const img=new Image();
+        await new Promise(res=>{img.onload=res;img.src=dataUrl;});
+        const cv=document.createElement('canvas');
+        cv.width=img.naturalWidth;cv.height=img.naturalHeight;
+        cv.getContext('2d').drawImage(img,0,0);
+        dataUrl=cv.toDataURL('image/jpeg',0.95);
+      }
       const row=importedData?importedData[i]:null;
       const name=row?.card_name||row?.name||row?.Name||row?.card_Name||('card_'+(i+1));
       const safeName=name.replace(/[^a-zA-Z0-9_\- ]/g,'').replace(/\s+/g,'_');
@@ -1353,16 +1365,15 @@ async function startBatchExport(){
       progFill.style.width=((exported/total)*100)+'%';
     }
     currentRow=prevRow;selectedId=prevSel;renderAll();
+    modal.style.visibility='visible';
     progEl.style.display='none';
     doneEl.style.display='block';
     doneEl.innerHTML=`✅ Exported ${exported} cards to folder. <button class="secondary-btn" style="width:auto;padding:4px 12px;font-size:10px;margin-top:4px" onclick="window.api.openFolder('${folder.replace(/\\/g,'\\\\')}')">Open Folder</button>`;
   } else {
-    // Sheet export
     const L=getSheetLayout();
     const useCropMarks=document.getElementById('crop-marks-cb')?.checked??false;
     const useBleed=document.getElementById('bleed-cb')?.checked??false;
     const bleedMm=useBleed?3:0;
-    // DPI: convert mm to pixels at 300 DPI
     const DPI=300;
     const mmToPx=v=>Math.round(v*DPI/25.4);
     const pagePxW=mmToPx(L.pageW);
@@ -1373,42 +1384,36 @@ async function startBatchExport(){
     const gapPx=mmToPx(L.gap);
     const mxPx=mmToPx(L.marginX);
     const myPx=mmToPx(L.marginY);
-    const cropMarkLen=mmToPx(5); // 5mm crop marks
-
-    // Calculate the scale needed: render card at size that fills cardPxW x cardPxH (plus bleed)
-    // Card canvas is CARD_W x CARD_H pixels. We need (cardPxW+2*bleedPx) x (cardPxH+2*bleedPx) pixels output.
+    const cropMarkLen=mmToPx(5);
     const renderW=cardPxW+2*bleedPx;
     const renderH=cardPxH+2*bleedPx;
-    const cardRenderScale=Math.max(renderW/CARD_W, renderH/CARD_H);
+    const cardRenderScale=Math.max(renderW/CARD_W,renderH/CARD_H);
 
     let exported=0;
     for(let pg=0;pg<L.pages;pg++){
       progText.textContent=`Exporting page ${pg+1} / ${L.pages}...`;
       progFill.style.width=((pg/L.pages)*100)+'%';
 
-      // Create page canvas
       const pageCanvas=document.createElement('canvas');
-      pageCanvas.width=pagePxW;
-      pageCanvas.height=pagePxH;
+      pageCanvas.width=pagePxW;pageCanvas.height=pagePxH;
       const ctx=pageCanvas.getContext('2d');
-      ctx.fillStyle='#ffffff';
-      ctx.fillRect(0,0,pagePxW,pagePxH);
+      ctx.fillStyle='#ffffff';ctx.fillRect(0,0,pagePxW,pagePxH);
 
       for(let r=0;r<L.rows;r++){
         for(let c=0;c<L.cols;c++){
           const idx=pg*L.perPage+r*L.cols+c;
           if(idx>=total) break;
-
-          currentRow=idx;
-          renderCard();
-          await new Promise(r=>setTimeout(r,60));
-
-          const cardCanvas=await h2c(document.getElementById('card-canvas'),{scale:cardRenderScale,useCORS:true,backgroundColor:null,logging:false,onclone:(clonedDoc)=>{clonedDoc.querySelectorAll('.card-el div').forEach(el=>{el.style.textAlign=el.style.textAlign||'left';el.style.wordSpacing='0px';el.style.whiteSpace='normal';});}});
+          currentRow=idx;renderCard();
+          await new Promise(r=>setTimeout(r,80));
+          const cardEl=document.getElementById('card-canvas');
+          const rect=cardEl.getBoundingClientRect();
+          const dataUrl=await window.api.captureCard({x:Math.round(rect.left),y:Math.round(rect.top),width:Math.round(rect.width),height:Math.round(rect.height)},cardRenderScale);
+          if(!dataUrl) continue;
+          const img=new Image();
+          await new Promise(res=>{img.onload=res;img.src=dataUrl;});
           const dx=mxPx+c*(cardPxW+gapPx)-bleedPx;
           const dy=myPx+r*(cardPxH+gapPx)-bleedPx;
-          ctx.drawImage(cardCanvas,0,0,cardCanvas.width,cardCanvas.height,dx,dy,renderW,renderH);
-          
-          // Draw crop marks for this card
+          ctx.drawImage(img,0,0,img.naturalWidth,img.naturalHeight,dx,dy,renderW,renderH);
           if(useCropMarks){
             const cx=mxPx+c*(cardPxW+gapPx);
             const cy=myPx+r*(cardPxH+gapPx);
@@ -1416,13 +1421,12 @@ async function startBatchExport(){
           }
         }
       }
-
       const dataUrl=pageCanvas.toDataURL(fmt==='jpg'?'image/jpeg':'image/png',0.95);
       await window.api.saveImage(folder,`sheet_${String(pg+1).padStart(3,'0')}.${fmt}`,dataUrl);
       exported++;
     }
-
     currentRow=prevRow;selectedId=prevSel;renderAll();
+    modal.style.visibility='visible';
     progEl.style.display='none';
     doneEl.style.display='block';
     doneEl.innerHTML=`✅ Exported ${exported} page${exported>1?'s':''} (${total} cards) to folder. <button class="secondary-btn" style="width:auto;padding:4px 12px;font-size:10px;margin-top:4px" onclick="window.api.openFolder('${folder.replace(/\\/g,'\\\\')}')">Open Folder</button>`;
