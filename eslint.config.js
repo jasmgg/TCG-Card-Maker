@@ -24,11 +24,19 @@ module.exports = [
     },
   },
   {
-    files: ['split-stats.js', 'test/**/*.js', 'eslint.config.js'],
+    files: ['scripts/**/*.js', 'test/**/*.js', 'eslint.config.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'commonjs',
       globals: { ...globals.node },
+    },
+  },
+  {
+    files: ['src/renderer/core/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: { ...globals.node, ...globals.browser },
     },
   },
   {

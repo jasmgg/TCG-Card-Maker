@@ -51,133 +51,13 @@ function suite(name, fn) {
 }
 
 // ============================================================
-// EXTRACT CORE LOGIC (copied from index.html for testing)
+// CORE LOGIC (loaded from the same modules the renderer uses)
 // ============================================================
-
-function clone(o) {
-  return JSON.parse(JSON.stringify(o));
-}
-
-function resolve(t, r) {
-  if (!r || !t) return t;
-  return String(t).replace(/\{\{([^}]+)\}\}/g, (_, k) => {
-    const v = r[k.trim()];
-    return v !== undefined ? String(v).trim() : '{{' + k + '}}';
-  });
-}
-
-function resolveImage(v, imageStore) {
-  if (!v) return '';
-  if (
-    v.startsWith('data:') ||
-    v.startsWith('blob:') ||
-    v.startsWith('http://') ||
-    v.startsWith('https://')
-  )
-    return v;
-  const t = v.trim();
-  if (!t) return '';
-  if (imageStore[t]) return imageStore[t];
-  if (imageStore[t.toLowerCase()]) return imageStore[t.toLowerCase()];
-  const fn = t.split(/[/\\]/).pop();
-  if (imageStore[fn]) return imageStore[fn];
-  if (imageStore[fn.toLowerCase()]) return imageStore[fn.toLowerCase()];
-  const ne = fn.replace(/\.[^.]+$/, '');
-  if (imageStore[ne]) return imageStore[ne];
-  if (imageStore[ne.toLowerCase()]) return imageStore[ne.toLowerCase()];
-  const norm = fn.replace(/\s+/g, '').toLowerCase();
-  for (const key in imageStore) {
-    const kNorm = key.split(/[/\\]/).pop().replace(/\s+/g, '').toLowerCase();
-    if (kNorm === norm) return imageStore[key];
-  }
-  const exts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];
-  const baseName = ne.toLowerCase().replace(/\s+/g, '');
-  for (const ext of exts) {
-    for (const key in imageStore) {
-      const kNorm = key.split(/[/\\]/).pop().replace(/\s+/g, '').toLowerCase();
-      if (kNorm === baseName + ext) return imageStore[key];
-    }
-  }
-  const neLower = ne.toLowerCase();
-  for (const key in imageStore) {
-    const kLower = key.toLowerCase();
-    const kFn = kLower.split(/[/\\]/).pop();
-    const kNe = kFn.replace(/\.[^.]+$/, '');
-    if (kNe === neLower) return imageStore[key];
-  }
-  return '';
-}
-
-function snapValue(val, gridSize) {
-  return Math.round(val / gridSize) * gridSize;
-}
-
-function getSheetLayout(pageW, pageH, cardW, cardH, gap, totalCards) {
-  const cols = Math.floor((pageW + gap) / (cardW + gap)) || 1;
-  const rows = Math.floor((pageH + gap) / (cardH + gap)) || 1;
-  const perPage = cols * rows;
-  const pages = Math.ceil(totalCards / perPage);
-  const marginX = (pageW - (cols * cardW + (cols - 1) * gap)) / 2;
-  const marginY = (pageH - (rows * cardH + (rows - 1) * gap)) / 2;
-  return {
-    pageW,
-    pageH,
-    cardW,
-    cardH,
-    gap,
-    cols,
-    rows,
-    perPage,
-    totalCards,
-    pages,
-    marginX,
-    marginY,
-  };
-}
-
-// Simplified alignment guide logic for testing
-function getAlignmentGuides(movingEl, otherElements, CARD_W, CARD_H, SNAP_THRESHOLD) {
-  const guides = [];
-  let snappedX = null,
-    snappedY = null;
-  const mx = movingEl.x,
-    my = movingEl.y;
-  const mw = movingEl.w,
-    mh = movingEl.h;
-  const mCx = mx + mw / 2,
-    mCy = my + mh / 2;
-
-  const cardCx = CARD_W / 2,
-    cardCy = CARD_H / 2;
-
-  if (Math.abs(mCx - cardCx) < SNAP_THRESHOLD) {
-    snappedX = cardCx - mw / 2;
-    guides.push({ type: 'vertical', pos: cardCx, center: true });
-  }
-  if (Math.abs(mCy - cardCy) < SNAP_THRESHOLD) {
-    snappedY = cardCy - mh / 2;
-    guides.push({ type: 'horizontal', pos: cardCy, center: true });
-  }
-
-  otherElements.forEach((other) => {
-    if (other.id === movingEl.id) return;
-    const ox = other.x,
-      oy = other.y;
-    const ow = other.w,
-      oh = other.h;
-
-    if (snappedX === null && Math.abs(mx - ox) < SNAP_THRESHOLD) {
-      snappedX = ox;
-      guides.push({ type: 'vertical', pos: ox });
-    }
-    if (snappedY === null && Math.abs(my - oy) < SNAP_THRESHOLD) {
-      snappedY = oy;
-      guides.push({ type: 'horizontal', pos: oy });
-    }
-  });
-
-  return { guides, snappedX, snappedY };
-}
+const { clone, resolve } = require('../src/renderer/core/text');
+const { resolveImage } = require('../src/renderer/core/images');
+const { snapValue } = require('../src/renderer/core/grid');
+const { getSheetLayout } = require('../src/renderer/core/sheet');
+const { getAlignmentGuides } = require('../src/renderer/core/guides');
 
 // ============================================================
 // TESTS

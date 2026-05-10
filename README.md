@@ -138,4 +138,4 @@ Runs the dependency-free suite in `test/test-core.js` covering placeholder resol
 
 ## Helper Scripts
 
-- **`split-stats.js`** — One-off CLI utility that splits a trailing `"X Attack, Y HP"` from a `description` column in a spreadsheet into separate `attack`/`hp`/`ability_text` columns. Run with `node split-stats.js your-cards.xlsx`.
+- **`scripts/split-stats.js`** — One-off CLI utility that splits a trailing `"X Attack, Y HP"` from a `description` column in a spreadsheet into separate `attack`/`hp`/`ability_text` columns. Run with `node scripts/split-stats.js your-cards.xlsx`.
