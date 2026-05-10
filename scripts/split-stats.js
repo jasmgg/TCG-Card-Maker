@@ -5,7 +5,7 @@
  * into separate columns.
  *
  * Usage:
- *   node split-stats.js your-cards.xlsx
+ *   node scripts/split-stats.js your-cards.xlsx
  *
  * Output:
  *   your-cards-split.xlsx (with new columns added)
@@ -55,8 +55,8 @@ function splitStats(text) {
 // --- Main ---
 const inputFile = process.argv[2];
 if (!inputFile) {
-  console.log('Usage: node split-stats.js <excel-file>');
-  console.log('Example: node split-stats.js my-cards.xlsx');
+  console.log('Usage: node scripts/split-stats.js <excel-file>');
+  console.log('Example: node scripts/split-stats.js my-cards.xlsx');
   process.exit(1);
 }
 
