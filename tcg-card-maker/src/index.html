@@ -1310,7 +1310,7 @@ async function renderCardToCanvas(cardIdx, scl){
   currentRow=cardIdx;
   renderCard();
   await new Promise(r=>setTimeout(r,60));
-  const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false});
+  const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false,onclone:(clonedDoc)=>{clonedDoc.querySelectorAll('.card-el div').forEach(el=>{el.style.textAlign=el.style.textAlign||'left';el.style.wordSpacing='0px';el.style.whiteSpace='normal';});}});
   currentRow=prevRow;selectedId=prevSel;
   return canvas;
 }
@@ -1342,7 +1342,7 @@ async function startBatchExport(){
       if(importedData)currentRow=i;
       renderCard();
       await new Promise(r=>setTimeout(r,80));
-      const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false});
+      const canvas=await h2c(document.getElementById('card-canvas'),{scale:scl,useCORS:true,backgroundColor:null,logging:false,onclone:(clonedDoc)=>{clonedDoc.querySelectorAll('.card-el div').forEach(el=>{el.style.textAlign=el.style.textAlign||'left';el.style.wordSpacing='0px';el.style.whiteSpace='normal';});}});
       const dataUrl=canvas.toDataURL(fmt==='jpg'?'image/jpeg':'image/png',0.95);
       const row=importedData?importedData[i]:null;
       const name=row?.card_name||row?.name||row?.Name||row?.card_Name||('card_'+(i+1));
@@ -1403,8 +1403,7 @@ async function startBatchExport(){
           renderCard();
           await new Promise(r=>setTimeout(r,60));
 
-          const cardCanvas=await h2c(document.getElementById('card-canvas'),{scale:cardRenderScale,useCORS:true,backgroundColor:null,logging:false});
-
+          const cardCanvas=await h2c(document.getElementById('card-canvas'),{scale:cardRenderScale,useCORS:true,backgroundColor:null,logging:false,onclone:(clonedDoc)=>{clonedDoc.querySelectorAll('.card-el div').forEach(el=>{el.style.textAlign=el.style.textAlign||'left';el.style.wordSpacing='0px';el.style.whiteSpace='normal';});}});
           const dx=mxPx+c*(cardPxW+gapPx)-bleedPx;
           const dy=myPx+r*(cardPxH+gapPx)-bleedPx;
           ctx.drawImage(cardCanvas,0,0,cardCanvas.width,cardCanvas.height,dx,dy,renderW,renderH);
