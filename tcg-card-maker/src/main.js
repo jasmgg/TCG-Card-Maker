@@ -184,3 +184,30 @@ ipcMain.handle('export:saveImage', async (_, { folder, filename, dataUrl }) => {
 ipcMain.handle('export:openFolder', async (_, folder) => {
   shell.openPath(folder);
 });
+
+// ============================================================
+// NATIVE CARD CAPTURE
+// Uses Electron's capturePage for pixel-perfect rendering,
+// avoiding html2canvas text rendering differences.
+// rect: { x, y, width, height } in logical (CSS) pixels
+// scale: number (e.g. 2 for 2x)
+// ============================================================
+ipcMain.handle('capture:card', async (_, { x, y, width, height, scale }) => {
+  try {
+    const rect = {
+      x: Math.round(x),
+      y: Math.round(y),
+      width: Math.round(width),
+      height: Math.round(height)
+    };
+    const image = await mainWindow.webContents.capturePage(rect);
+    // Resize to the requested output scale if needed
+    const targetW = Math.round(width * scale);
+    const targetH = Math.round(height * scale);
+    const resized = image.resize({ width: targetW, height: targetH, quality: 'best' });
+    return 'data:image/png;base64,' + resized.toPNG().toString('base64');
+  } catch (e) {
+    console.error('[capture:card]', e);
+    return null;
+  }
+});
