@@ -15,6 +15,7 @@ A desktop application for designing and batch-generating trading card game cards
 ## Quick Start
 
 ### Prerequisites
+
 - [Node.js](https://nodejs.org/) (v18 or later recommended)
 
 ### Setup
@@ -22,6 +23,7 @@ A desktop application for designing and batch-generating trading card game cards
 1. Open a terminal/command prompt in this folder
 
 2. Install dependencies:
+
    ```
    npm install
    ```
@@ -75,21 +77,21 @@ That's it! The app window will open.
 
 ## Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| Ctrl+Z | Undo |
-| Ctrl+Shift+Z | Redo |
-| Ctrl+S | Save project |
+| Shortcut           | Action                  |
+| ------------------ | ----------------------- |
+| Ctrl+Z             | Undo                    |
+| Ctrl+Shift+Z       | Redo                    |
+| Ctrl+S             | Save project            |
 | Delete / Backspace | Delete selected element |
 
 ## Excel File Format
 
 Your spreadsheet should have column headers in the first row:
 
-| card_name | description | type | attack | defense | art_image | flavour_text |
-|-----------|-------------|------|--------|---------|-----------|--------------|
-| Fire Dragon | A fierce dragon... | Fire | 85 | 60 | dragon.png | "In the ember glow..." |
-| Frost Warden | An ancient guardian... | Ice | 40 | 95 | warden.png | "The cold preserves..." |
+| card_name    | description            | type | attack | defense | art_image  | flavour_text            |
+| ------------ | ---------------------- | ---- | ------ | ------- | ---------- | ----------------------- |
+| Fire Dragon  | A fierce dragon...     | Fire | 85     | 60      | dragon.png | "In the ember glow..."  |
+| Frost Warden | An ancient guardian... | Ice  | 40     | 95      | warden.png | "The cold preserves..." |
 
 - Column headers become placeholder names: `{{card_name}}`, `{{attack}}`, etc.
 - Image columns should contain filenames matching your uploaded images
@@ -106,6 +108,7 @@ npm run build
 This creates both a setup `.exe` installer AND a `TCG-Card-Maker-Portable.exe` in the `dist/` folder.
 
 For just the portable EXE:
+
 ```
 npm run build:portable
 ```
@@ -113,6 +116,7 @@ npm run build:portable
 The portable EXE is a single file you can run from anywhere — no installation, no console, just double-click.
 
 ### Other Platforms
+
 ```
 npm run build:mac      # macOS .dmg
 npm run build:linux    # Linux AppImage
@@ -120,7 +124,18 @@ npm run build:linux    # Linux AppImage
 
 ## Tech Stack
 
-- **Electron** — Desktop app framework
-- **SheetJS** — Excel/CSV parsing
-- **html2canvas** — Card-to-image rendering
-- **Google Fonts** — Typography
+- **Electron** — Desktop app framework; card export uses Electron's native `capturePage` for pixel-perfect rendering (`src/main.js`)
+- **SheetJS (`xlsx`)** — Excel/CSV parsing
+- **Google Fonts** — Typography (15 fonts loaded from `fonts.googleapis.com`)
+
+## Tests
+
+```
+npm test
+```
+
+Runs the dependency-free suite in `test/test-core.js` covering placeholder resolution, image lookup, grid snapping, sheet layout, and alignment guides.
+
+## Helper Scripts
+
+- **`split-stats.js`** — One-off CLI utility that splits a trailing `"X Attack, Y HP"` from a `description` column in a spreadsheet into separate `attack`/`hp`/`ability_text` columns. Run with `node split-stats.js your-cards.xlsx`.

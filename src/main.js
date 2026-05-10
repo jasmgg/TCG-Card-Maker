@@ -15,8 +15,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
-    }
+      nodeIntegration: false,
+    },
   });
 
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
@@ -24,8 +24,12 @@ function createWindow() {
 }
 
 app.whenReady().then(createWindow);
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow();
+});
 
 // ============================================================
 // FILE DIALOGS
@@ -35,9 +39,9 @@ ipcMain.handle('dialog:openExcel', async () => {
     title: 'Import Excel / CSV',
     filters: [
       { name: 'Spreadsheets', extensions: ['xlsx', 'xls', 'csv'] },
-      { name: 'All Files', extensions: ['*'] }
+      { name: 'All Files', extensions: ['*'] },
     ],
-    properties: ['openFile']
+    properties: ['openFile'],
   });
   if (result.canceled || !result.filePaths.length) return null;
   const filePath = result.filePaths[0];
@@ -59,18 +63,18 @@ ipcMain.handle('dialog:openImages', async () => {
     title: 'Select Card Images',
     filters: [
       { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'] },
-      { name: 'All Files', extensions: ['*'] }
+      { name: 'All Files', extensions: ['*'] },
     ],
-    properties: ['openFile', 'multiSelections']
+    properties: ['openFile', 'multiSelections'],
   });
   if (result.canceled || !result.filePaths.length) return null;
-  return result.filePaths.map(fp => ({ path: fp, name: path.basename(fp) }));
+  return result.filePaths.map((fp) => ({ path: fp, name: path.basename(fp) }));
 });
 
 ipcMain.handle('dialog:openImageFolder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Select Image Folder',
-    properties: ['openDirectory']
+    properties: ['openDirectory'],
   });
   if (result.canceled || !result.filePaths.length) return null;
   const dir = result.filePaths[0];
@@ -93,10 +97,20 @@ ipcMain.handle('file:readImage', async (_, filePath) => {
   try {
     const buffer = fs.readFileSync(filePath);
     const ext = path.extname(filePath).toLowerCase();
-    const mimeMap = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.bmp': 'image/bmp' };
+    const mimeMap = {
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml',
+      '.bmp': 'image/bmp',
+    };
     const mime = mimeMap[ext] || 'image/png';
     return `data:${mime};base64,${buffer.toString('base64')}`;
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  }
 });
 
 // ============================================================
@@ -106,13 +120,15 @@ ipcMain.handle('project:save', async (_, projectData) => {
   const result = await dialog.showSaveDialog(mainWindow, {
     title: 'Save Project',
     defaultPath: 'my-card-project.tcg',
-    filters: [{ name: 'TCG Card Maker Project', extensions: ['tcg'] }]
+    filters: [{ name: 'TCG Card Maker Project', extensions: ['tcg'] }],
   });
   if (result.canceled) return false;
   try {
     fs.writeFileSync(result.filePath, JSON.stringify(projectData, null, 2), 'utf-8');
     return result.filePath;
-  } catch (e) { return false; }
+  } catch (e) {
+    return false;
+  }
 });
 
 ipcMain.handle('project:load', async () => {
@@ -120,22 +136,26 @@ ipcMain.handle('project:load', async () => {
     title: 'Open Project',
     filters: [
       { name: 'TCG Card Maker Project', extensions: ['tcg'] },
-      { name: 'All Files', extensions: ['*'] }
+      { name: 'All Files', extensions: ['*'] },
     ],
-    properties: ['openFile']
+    properties: ['openFile'],
   });
   if (result.canceled || !result.filePaths.length) return null;
   try {
     const data = fs.readFileSync(result.filePaths[0], 'utf-8');
     return { data: JSON.parse(data), path: result.filePaths[0] };
-  } catch (e) { return null; }
+  } catch (e) {
+    return null;
+  }
 });
 
 ipcMain.handle('project:quickSave', async (_, { filePath, projectData }) => {
   try {
     fs.writeFileSync(filePath, JSON.stringify(projectData, null, 2), 'utf-8');
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    return false;
+  }
 });
 
 // ============================================================
@@ -149,14 +169,18 @@ ipcMain.handle('library:load', async () => {
   try {
     const data = fs.readFileSync(getLibraryPath(), 'utf-8');
     return JSON.parse(data);
-  } catch (e) { return []; }
+  } catch (e) {
+    return [];
+  }
 });
 
 ipcMain.handle('library:save', async (_, library) => {
   try {
     fs.writeFileSync(getLibraryPath(), JSON.stringify(library, null, 2), 'utf-8');
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    return false;
+  }
 });
 
 // ============================================================
@@ -165,7 +189,7 @@ ipcMain.handle('library:save', async (_, library) => {
 ipcMain.handle('export:selectFolder', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     title: 'Select Export Folder',
-    properties: ['openDirectory', 'createDirectory']
+    properties: ['openDirectory', 'createDirectory'],
   });
   if (result.canceled || !result.filePaths.length) return null;
   return result.filePaths[0];
@@ -178,7 +202,9 @@ ipcMain.handle('export:saveImage', async (_, { folder, filename, dataUrl }) => {
     const filePath = path.join(folder, filename);
     fs.writeFileSync(filePath, buffer);
     return true;
-  } catch (e) { return false; }
+  } catch (e) {
+    return false;
+  }
 });
 
 ipcMain.handle('export:openFolder', async (_, folder) => {
@@ -198,7 +224,7 @@ ipcMain.handle('capture:card', async (_, { x, y, width, height, scale }) => {
       x: Math.round(x),
       y: Math.round(y),
       width: Math.round(width),
-      height: Math.round(height)
+      height: Math.round(height),
     };
     const image = await mainWindow.webContents.capturePage(rect);
     // Resize to the requested output scale if needed

@@ -10,7 +10,8 @@ contextBridge.exposeInMainWorld('api', {
   // Project
   saveProject: (data) => ipcRenderer.invoke('project:save', data),
   loadProject: () => ipcRenderer.invoke('project:load'),
-  quickSave: (filePath, data) => ipcRenderer.invoke('project:quickSave', { filePath, projectData: data }),
+  quickSave: (filePath, data) =>
+    ipcRenderer.invoke('project:quickSave', { filePath, projectData: data }),
 
   // Element library
   loadLibrary: () => ipcRenderer.invoke('library:load'),
@@ -18,7 +19,8 @@ contextBridge.exposeInMainWorld('api', {
 
   // Export
   selectExportFolder: () => ipcRenderer.invoke('export:selectFolder'),
-  saveImage: (folder, filename, dataUrl) => ipcRenderer.invoke('export:saveImage', { folder, filename, dataUrl }),
+  saveImage: (folder, filename, dataUrl) =>
+    ipcRenderer.invoke('export:saveImage', { folder, filename, dataUrl }),
   openFolder: (folder) => ipcRenderer.invoke('export:openFolder', folder),
 
   // Native card capture (pixel-perfect, replaces html2canvas)

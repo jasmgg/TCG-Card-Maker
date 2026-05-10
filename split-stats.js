@@ -1,15 +1,15 @@
 /**
  * TCG Card Data Splitter
- * 
+ *
  * Splits the final "X Attack, Y HP" stats from the description column
  * into separate columns.
- * 
+ *
  * Usage:
  *   node split-stats.js your-cards.xlsx
- * 
+ *
  * Output:
  *   your-cards-split.xlsx (with new columns added)
- * 
+ *
  * Prerequisites:
  *   npm install xlsx
  *   (already installed if you have the TCG Card Maker)
@@ -29,7 +29,7 @@ const CLEAN_DESC_COLUMN = 'ability_text';
 // --- Regex to match "X Attack, Y HP" at the end of a string ---
 // Matches patterns like:
 //   "1 Attack, 1 HP"
-//   "3 Attack 4 HP" 
+//   "3 Attack 4 HP"
 //   "+2 Attack, +3 HP"
 //   "10 Attack, 5 HP"
 const STAT_PATTERN = /\s*[,.]?\s*(\+?\d+)\s*Attack[,\s]+(\+?\d+)\s*HP\s*$/i;
@@ -38,17 +38,17 @@ function splitStats(text) {
   if (!text || typeof text !== 'string') {
     return { cleanText: text || '', attack: '', hp: '' };
   }
-  
+
   const match = text.match(STAT_PATTERN);
   if (match) {
     const cleanText = text.slice(0, match.index).trim();
     return {
       cleanText,
       attack: match[1],
-      hp: match[2]
+      hp: match[2],
     };
   }
-  
+
   return { cleanText: text, attack: '', hp: '' };
 }
 
@@ -73,7 +73,9 @@ console.log('');
 if (data.length > 0 && !(SOURCE_COLUMN in data[0])) {
   console.log(`Column "${SOURCE_COLUMN}" not found!`);
   console.log(`Available columns: ${Object.keys(data[0]).join(', ')}`);
-  console.log(`\nEdit the SOURCE_COLUMN variable at the top of this script to match your column name.`);
+  console.log(
+    `\nEdit the SOURCE_COLUMN variable at the top of this script to match your column name.`
+  );
   process.exit(1);
 }
 
@@ -82,10 +84,11 @@ let splitCount = 0;
 const newData = data.map((row, i) => {
   const original = String(row[SOURCE_COLUMN] || '');
   const { cleanText, attack, hp } = splitStats(original);
-  
+
   if (attack || hp) {
     splitCount++;
-    if (i < 3) { // Show first 3 examples
+    if (i < 3) {
+      // Show first 3 examples
       console.log(`Row ${i + 1}:`);
       console.log(`  Original:  "${original}"`);
       console.log(`  Cleaned:   "${cleanText}"`);
@@ -93,12 +96,12 @@ const newData = data.map((row, i) => {
       console.log('');
     }
   }
-  
+
   return {
     ...row,
     [CLEAN_DESC_COLUMN]: cleanText,
     [ATTACK_COLUMN]: attack,
-    [HP_COLUMN]: hp
+    [HP_COLUMN]: hp,
   };
 });
 

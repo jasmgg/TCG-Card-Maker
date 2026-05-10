@@ -1,27 +1,35 @@
 /**
  * TCG Card Maker — Automated Test Suite
- * 
+ *
  * Tests core logic functions extracted from the app.
- * Run with: node tests/test-core.js
- * 
+ * Run with: node test/test-core.js  (or: npm test)
+ *
  * No dependencies required — uses a minimal built-in test runner.
  */
 
 // ============================================================
 // MINIMAL TEST RUNNER
 // ============================================================
-let _passed = 0, _failed = 0, _errors = [];
+let _passed = 0,
+  _failed = 0,
+  _errors = [];
 
 function assert(condition, message) {
   if (!condition) throw new Error(message || 'Assertion failed');
 }
 
 function assertEqual(a, b, msg) {
-  if (a !== b) throw new Error(`${msg || 'assertEqual'}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
+  if (a !== b)
+    throw new Error(
+      `${msg || 'assertEqual'}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`
+    );
 }
 
 function assertDeepEqual(a, b, msg) {
-  if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${msg || 'assertDeepEqual'}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`);
+  if (JSON.stringify(a) !== JSON.stringify(b))
+    throw new Error(
+      `${msg || 'assertDeepEqual'}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`
+    );
 }
 
 function test(name, fn) {
@@ -46,7 +54,9 @@ function suite(name, fn) {
 // EXTRACT CORE LOGIC (copied from index.html for testing)
 // ============================================================
 
-function clone(o) { return JSON.parse(JSON.stringify(o)); }
+function clone(o) {
+  return JSON.parse(JSON.stringify(o));
+}
 
 function resolve(t, r) {
   if (!r || !t) return t;
@@ -58,7 +68,13 @@ function resolve(t, r) {
 
 function resolveImage(v, imageStore) {
   if (!v) return '';
-  if (v.startsWith('data:') || v.startsWith('blob:') || v.startsWith('http://') || v.startsWith('https://')) return v;
+  if (
+    v.startsWith('data:') ||
+    v.startsWith('blob:') ||
+    v.startsWith('http://') ||
+    v.startsWith('https://')
+  )
+    return v;
   const t = v.trim();
   if (!t) return '';
   if (imageStore[t]) return imageStore[t];
@@ -103,19 +119,37 @@ function getSheetLayout(pageW, pageH, cardW, cardH, gap, totalCards) {
   const pages = Math.ceil(totalCards / perPage);
   const marginX = (pageW - (cols * cardW + (cols - 1) * gap)) / 2;
   const marginY = (pageH - (rows * cardH + (rows - 1) * gap)) / 2;
-  return { pageW, pageH, cardW, cardH, gap, cols, rows, perPage, totalCards, pages, marginX, marginY };
+  return {
+    pageW,
+    pageH,
+    cardW,
+    cardH,
+    gap,
+    cols,
+    rows,
+    perPage,
+    totalCards,
+    pages,
+    marginX,
+    marginY,
+  };
 }
 
 // Simplified alignment guide logic for testing
 function getAlignmentGuides(movingEl, otherElements, CARD_W, CARD_H, SNAP_THRESHOLD) {
   const guides = [];
-  let snappedX = null, snappedY = null;
-  const mx = movingEl.x, my = movingEl.y;
-  const mw = movingEl.w, mh = movingEl.h;
-  const mCx = mx + mw / 2, mCy = my + mh / 2;
+  let snappedX = null,
+    snappedY = null;
+  const mx = movingEl.x,
+    my = movingEl.y;
+  const mw = movingEl.w,
+    mh = movingEl.h;
+  const mCx = mx + mw / 2,
+    mCy = my + mh / 2;
 
-  const cardCx = CARD_W / 2, cardCy = CARD_H / 2;
-  
+  const cardCx = CARD_W / 2,
+    cardCy = CARD_H / 2;
+
   if (Math.abs(mCx - cardCx) < SNAP_THRESHOLD) {
     snappedX = cardCx - mw / 2;
     guides.push({ type: 'vertical', pos: cardCx, center: true });
@@ -125,13 +159,21 @@ function getAlignmentGuides(movingEl, otherElements, CARD_W, CARD_H, SNAP_THRESH
     guides.push({ type: 'horizontal', pos: cardCy, center: true });
   }
 
-  otherElements.forEach(other => {
+  otherElements.forEach((other) => {
     if (other.id === movingEl.id) return;
-    const ox = other.x, oy = other.y;
-    const ow = other.w, oh = other.h;
+    const ox = other.x,
+      oy = other.y;
+    const ow = other.w,
+      oh = other.h;
 
-    if (snappedX === null && Math.abs(mx - ox) < SNAP_THRESHOLD) { snappedX = ox; guides.push({ type: 'vertical', pos: ox }); }
-    if (snappedY === null && Math.abs(my - oy) < SNAP_THRESHOLD) { snappedY = oy; guides.push({ type: 'horizontal', pos: oy }); }
+    if (snappedX === null && Math.abs(mx - ox) < SNAP_THRESHOLD) {
+      snappedX = ox;
+      guides.push({ type: 'vertical', pos: ox });
+    }
+    if (snappedY === null && Math.abs(my - oy) < SNAP_THRESHOLD) {
+      snappedY = oy;
+      guides.push({ type: 'horizontal', pos: oy });
+    }
   });
 
   return { guides, snappedX, snappedY };
@@ -147,7 +189,10 @@ suite('resolve() — placeholder substitution', () => {
   });
 
   test('replaces multiple placeholders', () => {
-    assertEqual(resolve('{{name}} has {{hp}} HP', { name: 'Dragon', hp: 100 }), 'Dragon has 100 HP');
+    assertEqual(
+      resolve('{{name}} has {{hp}} HP', { name: 'Dragon', hp: 100 }),
+      'Dragon has 100 HP'
+    );
   });
 
   test('leaves unmatched placeholders intact', () => {
@@ -203,7 +248,7 @@ suite('resolveImage() — image lookup', () => {
   const store = {
     'dragon.png': 'data:img/dragon',
     'Dragon.png': 'data:img/dragon',
-    'dragon': 'data:img/dragon',
+    dragon: 'data:img/dragon',
     'warden.png': 'data:img/warden',
     'folder/subfolder/deep.jpg': 'data:img/deep',
   };
@@ -360,7 +405,9 @@ suite('getSheetLayout() — print layout calculation', () => {
 });
 
 suite('getAlignmentGuides() — snap to other elements', () => {
-  const CARD_W = 375, CARD_H = 525, SNAP = 6;
+  const CARD_W = 375,
+    CARD_H = 525,
+    SNAP = 6;
 
   test('snaps to card center', () => {
     const el = { id: 'a', x: 185, y: 260, w: 50, h: 50 }; // center ~210, ~285
@@ -393,7 +440,7 @@ suite('getAlignmentGuides() — snap to other elements', () => {
     const el = { id: 'a', x: 50, y: 50, w: 60, h: 30 };
     const r = getAlignmentGuides(el, [el], CARD_W, CARD_H, SNAP);
     // Should not snap to self (only card center if close)
-    assertEqual(r.guides.filter(g => !g.center).length, 0, 'no non-center guides from self');
+    assertEqual(r.guides.filter((g) => !g.center).length, 0, 'no non-center guides from self');
   });
 });
 
@@ -401,9 +448,13 @@ suite('Edge Cases — Large datasets', () => {
   test('resolve with 500+ rows does not crash', () => {
     const rows = [];
     for (let i = 0; i < 500; i++) {
-      rows.push({ name: 'Card ' + i, attack: Math.floor(Math.random() * 100), hp: Math.floor(Math.random() * 100) });
+      rows.push({
+        name: 'Card ' + i,
+        attack: Math.floor(Math.random() * 100),
+        hp: Math.floor(Math.random() * 100),
+      });
     }
-    rows.forEach(r => {
+    rows.forEach((r) => {
       const result = resolve('{{name}} — ATK: {{attack}}', r);
       assert(result.includes('Card'), 'should contain card name');
     });
@@ -499,18 +550,18 @@ suite('Template definitions', () => {
   ];
 
   test('all templates have unique IDs', () => {
-    const ids = CARD_TEMPLATES.map(t => t.id);
+    const ids = CARD_TEMPLATES.map((t) => t.id);
     assertEqual(new Set(ids).size, ids.length, 'IDs should be unique');
   });
 
   test('all templates have at least 2 elements', () => {
-    CARD_TEMPLATES.forEach(t => {
+    CARD_TEMPLATES.forEach((t) => {
       assert(t.elements.length >= 2, `${t.name} should have >= 2 elements`);
     });
   });
 
   test('all templates start with a background shape', () => {
-    CARD_TEMPLATES.forEach(t => {
+    CARD_TEMPLATES.forEach((t) => {
       assertEqual(t.elements[0].type, 'shape', `${t.name} should start with a shape background`);
     });
   });
@@ -523,7 +574,7 @@ console.log('\n' + '='.repeat(50));
 console.log(`Results: ${_passed} passed, ${_failed} failed`);
 if (_errors.length) {
   console.log('\nFailed tests:');
-  _errors.forEach(e => console.log(`  ❌ ${e.name}: ${e.error}`));
+  _errors.forEach((e) => console.log(`  ❌ ${e.name}: ${e.error}`));
 }
 console.log('='.repeat(50));
 process.exit(_failed > 0 ? 1 : 0);

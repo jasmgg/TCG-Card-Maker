@@ -5,11 +5,16 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "test": "node test/test-core.js",
     "build": "electron-builder --win",
     "build:portable": "electron-builder --win portable",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "author": "TCG Card Maker",
   "license": "MIT",
@@ -17,8 +22,13 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.9.1",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.6.0",
+    "prettier": "^3.8.3"
   },
   "build": {
     "appId": "com.tcgcardmaker.app",
