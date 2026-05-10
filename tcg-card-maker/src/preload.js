@@ -20,4 +20,7 @@ contextBridge.exposeInMainWorld('api', {
   selectExportFolder: () => ipcRenderer.invoke('export:selectFolder'),
   saveImage: (folder, filename, dataUrl) => ipcRenderer.invoke('export:saveImage', { folder, filename, dataUrl }),
   openFolder: (folder) => ipcRenderer.invoke('export:openFolder', folder),
+
+  // Native card capture (pixel-perfect, replaces html2canvas)
+  captureCard: (rect, scale) => ipcRenderer.invoke('capture:card', { ...rect, scale }),
 });
